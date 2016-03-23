@@ -1,5 +1,6 @@
 var Discord = require("discord.js");
 var config = require('./config.js');
+var edsm = require('./edsm.js');
 
 const VERSION = "FGEBot Version 0.1.0";
 
@@ -161,6 +162,13 @@ var commands = {
 				timestr += secs + " seconds ";
 			}
 			bot.sendMessage(msg.channel,"Uptime: " + timestr);
+		}
+	},
+	"loc": {
+		usage: "<name>",
+		help: 'Gets the location of a commander',
+		process: function(args,bot,msg) {
+			edsm.getPosition(compileArgs(args), bot, msg);
 		}
 	},
 	"help": {
