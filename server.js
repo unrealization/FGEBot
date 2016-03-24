@@ -2,7 +2,7 @@ var Discord = require("discord.js");
 var config = require('./config.js');
 var edsm = require('./edsm.js');
 
-const VERSION = "FGEBot Version 0.2.0";
+const VERSION = "FGEBot Version 0.3.0";
 
 var FGEBot = new Discord.Client();
 
@@ -178,6 +178,28 @@ var commands = {
 			var system = compileArgs(args);
 			edsm.getSystemCoords(system, bot, msg);
 		}
+	},
+	"cmdrcoords": {
+		usage: "<name>",
+		help: "Gets the locatino of a commander, including system coordinates, if they are available",
+		process: function(args,bot,msg) {
+			edsm.getCmdrCoords(compileArgs(args), bot, msg);
+		}
+	},
+	"dist": {
+		usage: "<first> -> <second>",
+		help: "Gets the distance from one system or commander to another. If <second> is not given, gets the distance from first to Sol",
+		process: function(args,bot,msg) {
+			var query = compileArgs(args).split("->");
+			var first = query[0].trim();
+			var second = null;
+			if (query.length == 1) {
+				second = "Sol";
+			} else {
+				second = query[1].trim();
+			}
+			edsm.getDistance(first, second, bot, msg);
+		}		
 	},
 	"help": {
 		help: "Display help for this bot.",
