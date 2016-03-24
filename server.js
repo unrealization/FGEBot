@@ -2,7 +2,7 @@ var Discord = require("discord.js");
 var config = require('./config.js');
 var edsm = require('./edsm.js');
 
-const VERSION = "FGEBot Version 0.1.0";
+const VERSION = "FGEBot Version 0.2.0";
 
 var FGEBot = new Discord.Client();
 
@@ -171,6 +171,14 @@ var commands = {
 			edsm.getPosition(compileArgs(args), bot, msg);
 		}
 	},
+	"syscoords": {
+		usage: "<system>",
+		help: 'Gets the galactic coordinates of a system',
+		process: function(args,bot,msg) {
+			var system = compileArgs(args);
+			edsm.getSystemCoords(system, bot, msg);
+		}
+	},
 	"help": {
 		help: "Display help for this bot.",
 		process: function(args, bot, message) {
@@ -205,12 +213,12 @@ FGEBot.on("message", function(message){
 				try{
 					cmd.process(args, FGEBot, message);
 				} catch(e){
-					if(Config.debug){
+					if(config.debug){
 						FGEBot.sendMessage(message.channel, "command " + message.content + " failed :(\n" + e.stack);
 					}
 				}
 			} else {
-				if(Config.respondToInvalid){
+				if(config.respondToInvalid){
 					FGEBot.sendMessage(message.channel, "Invalid command " + message.content);
 				}
 			}

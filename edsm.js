@@ -5,7 +5,6 @@ var client = new Client();
 var getPosition = function(commander, bot, message) {
 	client.get("http://www.edsm.net/api-logs-v1/get-position?commanderName=" + commander, function (data, response) {
 		try {
-			//var parsed = JSON.parse(data);
 			var output = "Some error occurred";
 			if (data.system) {
 				output = commander + " was last seen in " + data.system;
@@ -26,6 +25,7 @@ var getPosition = function(commander, bot, message) {
 				}
 			}
 			bot.sendMessage(message.channel, output);
+			// console.log(output);
 		} catch(e) {
 			bot.sendMessage(message.channel, "Something went wrong on the request");
 			console.log('JSON parse exception', e);
@@ -36,4 +36,23 @@ var getPosition = function(commander, bot, message) {
 	});
 }
 
+var _getSystemCoords = function(system, callback) {
+	client.get("http://www.edsm.net/api-v1/system?systemName=" + system + "&coords=1", function (data, response) {
+		callback(data);
+	}).on('error', function (err) {
+		callback(null);
+	});
+}
+
+var getSystemCoords = function(system, bot, message) {
+	_getSystemCoords(system, function(coords) {
+		var output = "Sorry, " + system + " is not in EDSM";
+		if (coords) {
+			output = "System: " + coords.name + " [ " + coords.coords.x + " : " + coords.coords.y + " : " + coords.coords.z + " ]";
+		}
+		bot.sendMessage(message.channel, output);
+	});
+}
+
 exports.getPosition = getPosition;
+exports.getSystemCoords = getSystemCoords;
