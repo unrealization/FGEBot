@@ -159,7 +159,14 @@ var getDistance = function(first, second, bot, message) {
 						var dist = _calcDistance(firstCoords.coords, secondCoords.coords);
 						bot.sendMessage(message.channel, "Distance between " + first + " and " + second + " is " + dist.toFixed(2) + " ly");
 					} else {
-						bot.sendMessage(message.channel, "Sorry, could not calculate the distance from " + first + " to " + second);
+						var output = "Sorry, could not calculate the distance from " + first + " to " + second;
+						if (firstCoords.coords == undefined) {
+							output += "\n" + first + " has shared their location, but we have no coordinates for it";
+						}
+						if (secondCoords.coords == undefined) {
+							output += "\n" + second + " has shared their location, but we have no coordinates for it";
+						}
+						bot.sendMessage(message.channel, output);
 					}
 				} else {
 					bot.sendMessage(message.channel, "Sorry, " + second + " could not be located");

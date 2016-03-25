@@ -1,6 +1,6 @@
 {
   "name": "FGEBot",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Discord bot for the First Great Expedition",
   "main": "main.js",
   "dependencies": {
