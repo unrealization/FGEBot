@@ -2,6 +2,11 @@ var Client = require('node-rest-client').Client;
  
 var client = new Client();
 
+var aliases = {};
+aliases["beagle point"] = "CEECKIA ZQ-L C24-0";
+aliases["kippax ring"] = "HIP 72043";
+aliases["rr lyrae"] = "HIP 95497";
+
 var _getSystem = function(commander, callback) {
 	client.get("http://www.edsm.net/api-logs-v1/get-position?commanderName=" + commander, function (data, response) {
 		try {
@@ -48,6 +53,10 @@ var getPosition = function(commander, bot, message) {
 }
 
 var _getSystemCoords = function(system, callback) {
+	var key = system.toLowerCase();
+	if (aliases[key]) {
+		system = aliases[key];
+	}
 	client.get("http://www.edsm.net/api-v1/system?systemName=" + system + "&coords=1", function (data, response) {
 		if (data) {
 			if (!data.name) {
@@ -166,3 +175,4 @@ exports.getPosition = getPosition;
 exports.getSystemCoords = getSystemCoords;
 exports.getCmdrCoords = getCmdrCoords;
 exports.getDistance = getDistance;
+exports.aliases = aliases

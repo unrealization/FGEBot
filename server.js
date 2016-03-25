@@ -2,7 +2,7 @@ var Discord = require("discord.js");
 var config = require('./config.js');
 var edsm = require('./edsm.js');
 
-const VERSION = "FGEBot Version 0.3.0";
+const VERSION = "FGEBot Version 0.3.1";
 
 var FGEBot = new Discord.Client();
 
@@ -201,9 +201,22 @@ var commands = {
 			edsm.getDistance(first, second, bot, msg);
 		}		
 	},
+	"aliases": {
+		help: "Returns the list of supported alias systems",
+		process: function(args,bot,msg) {
+			var key;
+			var output = "Supported stellar aliases:";
+			for (key in edsm.aliases) {
+				if (typeof edsm.aliases[key] != 'function') {
+					output += "\n    *" + key + " -> " + edsm.aliases[key];
+				}
+			}
+			bot.sendMessage(msg.channel, output);
+		}
+	},
 	"help": {
 		help: "Display help for this bot.",
-		process: function(args, bot, message) {
+		process: function(args, bot, msg) {
 			var output = VERSION + " commands:";
 			var key;
 			for (key in commands) {
@@ -217,7 +230,7 @@ var commands = {
 				output += commands[key].help;
 			}
 			// console.log(output);
-			bot.sendMessage(message.channel, output);
+			bot.sendMessage(msg.channel, output);
 		}
 	},
 };
