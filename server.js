@@ -181,7 +181,7 @@ var commands = {
 	},
 	"cmdrcoords": {
 		usage: "<name>",
-		help: "Gets the locatino of a commander, including system coordinates, if they are available",
+		help: "Gets the location of a commander, including system coordinates, if they are available",
 		process: function(args,bot,msg) {
 			edsm.getCmdrCoords(compileArgs(args), bot, msg);
 		}
