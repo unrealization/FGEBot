@@ -219,7 +219,7 @@ var commands = {
 		help: "Find systems close to a system or commander",
 		process: function(args, bot, msg) {
 			var name = compileArgs(args);
-			edsm.nearby(name, bot, msg);
+			edsm.getNearbySystems(name, bot, msg);
 			}
 	},
 	"help": {

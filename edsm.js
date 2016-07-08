@@ -69,6 +69,26 @@ var _getSystemCoords = function(system, callback) {
 	});
 }
 
+var _getNearbySystems = function(system, callback) {
+	var key = system.toLowerCase();
+
+	if ( aliases[key] ) {
+		system = aliases[key];
+	}
+
+	client.get("https://www.edsm.net/api-v1/sphere-systems?systemName=" + system, function(data, response) {
+		if (data) {
+			if (data.length == 0) {
+				data = null;
+			}
+
+			callback(data);
+		}
+	}).on('error', function(erro) {
+		callback(null);
+	});
+}
+
 var _getCommanderCoords = function(commander, callback) {
 	_getSystem(commander, function(data) {
 		var output = _getPositionString(commander, data);
@@ -122,13 +142,22 @@ var getSystemCoords = function(system, bot, message) {
 	});
 }
 
-var nearby = function(name, bot, message) {
+var getNearbySystems = function(name, bot, message) {
 	var systemName = "";
 
 	_getSystemOrCmdrCoords(name, function(coords) {
 		if (coords) {
 			var systemName = coords.name;
-			bot.sendMessage(message.channel, coords.name);
+			_getNearbySystems(systemName, function(data) {
+				if (data) {
+					for (var index=0; index<data.length;index++) {
+						if (data[index].name == systemName) {
+							continue;
+						}
+						bot.sendMessage(message.channel, data[index].name);
+					}
+				}
+			});
 		} else {
 			bot.sendMessage(message.channel, name + "not found.");
 		}
@@ -195,5 +224,5 @@ exports.getPosition = getPosition;
 exports.getSystemCoords = getSystemCoords;
 exports.getCmdrCoords = getCmdrCoords;
 exports.getDistance = getDistance;
-exports.nearby = nearby;
+exports.getNearbySystems = getNearbySystems;
 exports.aliases = aliases
