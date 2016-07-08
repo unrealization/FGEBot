@@ -122,6 +122,19 @@ var getSystemCoords = function(system, bot, message) {
 	});
 }
 
+var nearby = function(name, bot, message) {
+	var systemName = "";
+
+	_getSystemOrCmdrCoords(name, function(coords) {
+		if (coords) {
+			var systemName = coords.name;
+			bot.sendMessage(message.channel, coords.name);
+		} else {
+			bot.sendMessage(message.channel, name + "not found.");
+		}
+	});
+}
+
 var _sq2 = function(a, b) {
 	var val = a - b;
 	return val * val;
@@ -182,4 +195,5 @@ exports.getPosition = getPosition;
 exports.getSystemCoords = getSystemCoords;
 exports.getCmdrCoords = getCmdrCoords;
 exports.getDistance = getDistance;
+exports.nearby = nearby;
 exports.aliases = aliases

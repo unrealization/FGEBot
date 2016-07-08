@@ -214,6 +214,14 @@ var commands = {
 			bot.sendMessage(msg.channel, output);
 		}
 	},
+	"nearby": {
+		usage: "<name>",
+		help: "Find systems close to a system or commander",
+		process: function(args, bot, msg) {
+			var name = compileArgs(args);
+			edsm.nearby(name, bot, msg);
+			}
+	},
 	"help": {
 		help: "Display help for this bot.",
 		process: function(args, bot, msg) {
