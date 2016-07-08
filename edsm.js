@@ -3,9 +3,9 @@ var Client = require('node-rest-client').Client;
 var client = new Client();
 
 var aliases = {};
-aliases["beagle point"] = "CEECKIA ZQ-L C24-0";
 aliases["kippax ring"] = "HIP 72043";
 aliases["rr lyrae"] = "HIP 95497";
+aliases["jaques station"] = "Eol Prou RS-T d3-94";
 
 var _getSystem = function(commander, callback) {
 	client.get("http://www.edsm.net/api-logs-v1/get-position?commanderName=" + commander, function (data, response) {
