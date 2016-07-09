@@ -2,7 +2,7 @@ var Discord = require("discord.js");
 var config = require('./config.js');
 var edsm = require('./edsm.js');
 
-const VERSION = "FGEBot Version 0.3.2-JTJ4";
+const VERSION = "FGEBot Version 0.3.2-JTJ4.1";
 
 var FGEBot = new Discord.Client();
 
@@ -35,18 +35,9 @@ var compileArgs = function(args) {
 }
 
 var commands = {
-	"chortle": {
-		help: "Make 'em laugh...",
-		process: function(args, bot, message) { bot.sendMessage(message.channel, "*chortle*!"); }
-	},
 	"ping": {
 		help: "Returns pong. Useful for determining if the bot is alive.",
 		process: function(args, bot, message) { bot.sendMessage(message.channel, "Pong!"); }
-	},
-	"pat": {
-		usage: "<name>",
-		help: "Rough day? Comfort someone with this command.",
-		process: function(args, bot, message) { bot.sendMessage(message.channel, "There, there, " + compileArgs(args)); }
 	},
 	"version": {
 		help: "Display version information for this bot.",
@@ -238,7 +229,12 @@ var commands = {
 			var output = VERSION + " commands:";
 			var key;
 			for (key in commands) {
-				output += "\n\t!";
+				output += "\n\t";
+
+				if (config.COMMAND_PREFIX) {
+					output += config.COMMAND_PREFIX;
+				}
+
 				output += key;
 				var usage = commands[key].usage;
 				if(usage){
