@@ -2,7 +2,7 @@ var Discord = require("discord.js");
 var config = require('./config.js');
 var edsm = require('./edsm.js');
 
-const VERSION = "FGEBot Version 0.3.2-JTJ4.1";
+const VERSION = "FGEBot Version 0.3.2-JTJ4.2";
 
 var FGEBot = new Discord.Client();
 
@@ -178,10 +178,10 @@ var commands = {
 		}
 	},
 	"distance": {
-		usage: "<first> -> <second>",
+		usage: "<first> " + config.NAME_SEPARATOR + " <second>",
 		help: "Gets the distance from one system or commander to another. If <second> is not given, gets the distance from first to Sol",
 		process: function(args,bot,msg) {
-			var query = compileArgs(args).split("->");
+			var query = compileArgs(args).split(config.NAME_SEPARATOR);
 			var first = query[0].trim();
 			var second = null;
 			if (query.length == 1) {

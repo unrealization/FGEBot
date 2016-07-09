@@ -3,6 +3,7 @@ const PASSWORD = "PASSWORD_HERE";
 const RESPOND_TO_MENTIONS = 1;
 const RESPOND_TO_COMMANDS = 0;
 const COMMAND_PREFIX = "!";
+const NAME_SEPARATOR = "->";
 
 const USE_TRELLO = false;
 const TRELLO_KEY = 'TRELLO_KEY';
@@ -23,6 +24,7 @@ module.exports.PASSWORD = PASSWORD;
 module.exports.RESPOND_TO_MENTIONS = RESPOND_TO_MENTIONS;
 module.exports.RESPOND_TO_COMMANDS = RESPOND_TO_COMMANDS;
 module.exports.COMMAND_PREFIX = COMMAND_PREFIX;
+module.exports.NAME_SEPARATOR = NAME_SEPARATOR;
 
 module.exports.USE_TRELLO = USE_TRELLO;
 module.exports.TRELLO_KEY = TRELLO_KEY;
