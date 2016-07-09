@@ -2,7 +2,7 @@ var Discord = require("discord.js");
 var config = require('./config.js');
 var edsm = require('./edsm.js');
 
-const VERSION = "FGEBot Version 0.3.2-JTJ1";
+const VERSION = "FGEBot Version 0.3.2-JTJ2";
 
 var FGEBot = new Discord.Client();
 
