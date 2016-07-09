@@ -69,14 +69,20 @@ var _getSystemCoords = function(system, callback) {
 	});
 }
 
-var _getNearbySystems = function(system, callback) {
+var _getNearbySystems = function(system, range, callback) {
 	var key = system.toLowerCase();
 
-	if ( aliases[key] ) {
+	if (aliases[key]) {
 		system = aliases[key];
 	}
 
-	client.get("https://www.edsm.net/api-v1/sphere-systems?systemName=" + system, function(data, response) {
+	var rangeParameter = "";
+
+	if (range!=null) {
+		rangeParameter = "&radius=" + range;
+	}
+
+	client.get("https://www.edsm.net/api-v1/sphere-systems?systemName=" + system + "&coords=1" + rangeParameter, function(data, response) {
 		if (data) {
 			if (data.length == 0) {
 				data = null;
@@ -142,24 +148,44 @@ var getSystemCoords = function(system, bot, message) {
 	});
 }
 
-var getNearbySystems = function(name, bot, message) {
+var getNearbySystems = function(name, range, bot, message) {
 	var systemName = "";
 
 	_getSystemOrCmdrCoords(name, function(coords) {
 		if (coords) {
 			var systemName = coords.name;
-			_getNearbySystems(systemName, function(data) {
+			_getNearbySystems(systemName, range, function(data) {
 				if (data) {
-					for (var index=0; index<data.length;index++) {
+					var output = "";
+					var lines = 0;
+
+					for (var index=0; index<data.length; index++) {
 						if (data[index].name == systemName) {
 							continue;
 						}
-						bot.sendMessage(message.channel, data[index].name);
+
+						distance = _calcDistance(coords.coords, data[index].coords);
+						distance = Number(distance).toFixed(2);
+
+						output += data[index].name + " (" + distance + " ly)\n";
+						lines++;
+
+						if (lines==20) {
+							bot.sendMessage(message.channel, output);
+							output = "";
+							lines = 0;
+						}
+					}
+
+					if (output=="") {
+						bot.sendMessage(message.channel, "No systems found.");
+					} else {
+						bot.sendMessage(message.channel, output);
 					}
 				}
 			});
 		} else {
-			bot.sendMessage(message.channel, name + "not found.");
+			bot.sendMessage(message.channel, name + " not found.");
 		}
 	});
 }
