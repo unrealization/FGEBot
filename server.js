@@ -2,7 +2,7 @@ var Discord = require("discord.js");
 var config = require('./config.js');
 var edsm = require('./edsm.js');
 
-const VERSION = "FGEBot Version 0.3.2-JTJ2";
+const VERSION = "FGEBot Version 0.3.2-JTJ2.3";
 
 var FGEBot = new Discord.Client();
 
@@ -239,8 +239,31 @@ var commands = {
 FGEBot.on("message", function(message){
 	if (message.author !== FGEBot.user) {
 		console.log("[" + FGEBot.user + "] Got message from " + message.author + ": " + message);
-		if (message.content.startsWith("!")) {
-			messageContent = message.content.substr(1);
+
+		if (config.RESPOND_TO_MENTIONS) {
+			var mentionString = "<@!" + FGEBot.user.id + ">";
+
+			if (message.content.startsWith(mentionString)) {
+				messageContent = message.content.substr(mentionString.length).trim();
+				var args = messageContent.split(" ");
+				var cmd = commands[args[0]];
+
+				if (cmd) {
+					try {
+						cmd.process(args, FGEBot, message);
+					} catch(e) {
+						if (config.debug) {
+							FGEBot.sendMessage(message.channel, "command " + message.content + " failed :(\n" + e.stack);
+						}
+					}
+				} else {
+					FGEBot.sendMessage(message.channel, message.author + ", what's up?");
+				}
+			}
+		}
+
+		if (config.RESPOND_TO_COMMANDS && config.COMMAND_PREFIX && message.content.startsWith(config.COMMAND_PREFIX)) {
+			messageContent = message.content.substr(config.COMMAND_PREFIX.length);
 			// First word is a command
 			var args = messageContent.split(" ");
 			var cmd = commands[args[0]];
@@ -258,8 +281,8 @@ FGEBot.on("message", function(message){
 				}
 			}
 		} else if (message.author != FGEBot.user && message.isMentioned(FGEBot.user)) {
-                FGEBot.sendMessage(message.channel,message.author + ", you called?");
-        }
+			FGEBot.sendMessage(message.channel,message.author + ", you called?");
+        	}
 	} 
 });
 
