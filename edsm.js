@@ -213,6 +213,7 @@ var getRoute = function(first, second, range, bot, message) {
 							var closestSystemJump = null;
 
 							for (var index=0; index<data.length; index++) {
+								console.log(data[index].coords);
 								distance = _calcDistance(secondSystemCoords.coords, data[index].coords);
 								distance = Number(distance);
 
@@ -248,7 +249,8 @@ var getRoute = function(first, second, range, bot, message) {
 								}
 							}
 						} else {
-							bot.sendMessage(message.channel, "Something's wrong...");
+							output += "\nSomething's wrong...";
+							bot.sendMessage(message.channel, output);
 						}
 					};
 
