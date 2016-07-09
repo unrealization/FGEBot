@@ -291,7 +291,7 @@ FGEBot.on("message", function(message){
 					FGEBot.sendMessage(message.channel, "Invalid command " + message.content);
 				}
 			}
-		} else if (message.author != FGEBot.user && message.isMentioned(FGEBot.user)) {
+		} else if (!processed && message.author != FGEBot.user && message.isMentioned(FGEBot.user)) {
 			FGEBot.sendMessage(message.channel,message.author + ", you called?");
         	}
 	} 
