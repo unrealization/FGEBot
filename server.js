@@ -241,10 +241,18 @@ FGEBot.on("message", function(message){
 		console.log("[" + FGEBot.user + "] Got message from " + message.author + ": " + message);
 
 		if (config.RESPOND_TO_MENTIONS) {
-			var mentionString = "<@!" + FGEBot.user.id + ">";
+			var mentionString = "<@" + FGEBot.user.id + ">";
+			var mentionStringRenamed = "<@!" + FGEBot.user.id + ">";
 
-			if (message.content.startsWith(mentionString)) {
-				messageContent = message.content.substr(mentionString.length).trim();
+			if (message.content.startsWith(mentionString) || message.content.startsWith(mentionStringRenamed)) {
+				if (message.content.startsWith(mentionString)) {
+					messageContent = message.content.substr(mentionString.length).trim();
+				} else if (message.content.startsWith(mentionStringRenamed)) {
+					messageContent = message.content.substr(mentionStringRenamed.length).trim();
+				} else {
+					messageContent = message.content;
+				}
+
 				var args = messageContent.split(" ");
 				var cmd = commands[args[0]];
 
