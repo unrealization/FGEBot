@@ -164,7 +164,7 @@ var commands = {
 			bot.sendMessage(msg.channel,"Uptime: " + timestr);
 		}
 	},
-	"loc": {
+	"locate": {
 		usage: "<name>",
 		help: 'Gets the location of a commander',
 		process: function(args,bot,msg) {
@@ -186,7 +186,7 @@ var commands = {
 			edsm.getCmdrCoords(compileArgs(args), bot, msg);
 		}
 	},
-	"dist": {
+	"distance": {
 		usage: "<first> -> <second>",
 		help: "Gets the distance from one system or commander to another. If <second> is not given, gets the distance from first to Sol",
 		process: function(args,bot,msg) {
