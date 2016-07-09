@@ -2,7 +2,7 @@ var Discord = require("discord.js");
 var config = require('./config.js');
 var edsm = require('./edsm.js');
 
-const VERSION = "FGEBot Version 0.3.2-JTJ4.2";
+const VERSION = "FGEBot Version 0.3.2-JTJ4.2-route";
 
 var FGEBot = new Discord.Client();
 
@@ -205,13 +205,40 @@ var commands = {
 			bot.sendMessage(msg.channel, output);
 		}
 	},
+	"route": {
+		usage: "<first> " + config.NAME_SEPARATOR + " <second> [r:<range>]",
+		help: "Find a route from one system or commander to another",
+		process : function(args, bot, msg) {
+			var lastArgIndex = args.length-1;
+			var lastArg = args[lastArgIndex];
+			var rangeRegEx = new RegExp('^r:\\d+(\\.\\d{1,2})?$');
+			var range = null;
+
+			if (rangeRegEx.test(lastArg)) {
+				range = lastArg.substr(2);
+				args.pop();
+			}
+
+			var query = compileArgs(args).split(config.NAME_SEPARATOR);
+			var first = query[0].trim();
+			var second = null;
+
+			if (query.length == 1) {
+				second = "Sol";
+			} else {
+				second = query[1].trim();
+			}
+
+			edsm.getRoute(first, second, range, bot, msg);
+		}
+	},
 	"nearby": {
-		usage: "<name>",
+		usage: "<name> [r:<range>]",
 		help: "Find systems close to a system or commander",
 		process: function(args, bot, msg) {
 			var lastArgIndex = args.length-1;
 			var lastArg = args[lastArgIndex];
-			var rangeRegEx = new RegExp('^r:\\d+(.\\d{1,2})?$');
+			var rangeRegEx = new RegExp('^r:\\d+(\\.\\d{1,2})?$');
 			var range = null;
 
 			if (rangeRegEx.test(lastArg)) {
@@ -221,7 +248,7 @@ var commands = {
 
 			var name = compileArgs(args);
 			edsm.getNearbySystems(name, range, bot, msg);
-			}
+		}
 	},
 	"help": {
 		help: "Display help for this bot.",
