@@ -2,7 +2,7 @@ var Discord = require("discord.js");
 var config = require('./config.js');
 var edsm = require('./edsm.js');
 
-const VERSION = "FGEBot Version 0.3.2-JTJ3";
+const VERSION = "FGEBot Version 0.3.2-JTJ3.1";
 
 var FGEBot = new Discord.Client();
 
@@ -238,6 +238,7 @@ var commands = {
 
 FGEBot.on("message", function(message){
 	if (message.author !== FGEBot.user) {
+		var processed = 0;
 		console.log("[" + FGEBot.user + "] Got message from " + message.author + ": " + message);
 
 		if (config.RESPOND_TO_MENTIONS) {
@@ -245,6 +246,8 @@ FGEBot.on("message", function(message){
 			var mentionStringRenamed = "<@!" + FGEBot.user.id + ">";
 
 			if (message.content.startsWith(mentionString) || message.content.startsWith(mentionStringRenamed)) {
+				processed = 1;
+
 				if (message.content.startsWith(mentionString)) {
 					messageContent = message.content.substr(mentionString.length).trim();
 				} else if (message.content.startsWith(mentionStringRenamed)) {
@@ -270,7 +273,7 @@ FGEBot.on("message", function(message){
 			}
 		}
 
-		if (config.RESPOND_TO_COMMANDS && config.COMMAND_PREFIX && message.content.startsWith(config.COMMAND_PREFIX)) {
+		if (!processed && config.RESPOND_TO_COMMANDS && config.COMMAND_PREFIX && message.content.startsWith(config.COMMAND_PREFIX)) {
 			messageContent = message.content.substr(config.COMMAND_PREFIX.length);
 			// First word is a command
 			var args = messageContent.split(" ");
