@@ -203,8 +203,9 @@ var getRoute = function(first, second, range, bot, message) {
 					distance = _calcDistance(firstSystemCoords.coords, secondSystemCoords.coords);
 					distance = Number(distance);
 
-					var output = message.author + "\n" + firstSystemName + " (Jump Distance: 0 ly) (Distance from " + secondSystemName + ": " + distance.toFixed(2) + " ly)\n";
+					var output = message.author + "\n#0\t" + firstSystemName + "\t(Jump Distance: 0 ly)\t(Distance from " + secondSystemName + ": " + distance.toFixed(2) + " ly)\n";
 					var lines = 2;
+					var jumpNo = 0;
 
 					var routingCallback = function(data) {
 						if (data) {
@@ -230,7 +231,8 @@ var getRoute = function(first, second, range, bot, message) {
 								output += "\nYou have reached a dead end. This may be due to insufficient data or an insufficient jump range.";
 								bot.sendMessage(message.channel, output);
 							} else {
-								output += closestSystem.name + " (Jump Distance: " + closestSystemJump.toFixed(2) + " ly) (Distance from " + secondSystemName + ": " + closestSystemDistance.toFixed(2) + " ly)\n";
+								jumpNo++;
+								output += "#" + jumpNo + "\t" + closestSystem.name + "\t(Jump Distance: " + closestSystemJump.toFixed(2) + " ly)\t(Distance from " + secondSystemName + ": " + closestSystemDistance.toFixed(2) + " ly)\n";
 								lines++;
 
 								if (lines == 20) {
