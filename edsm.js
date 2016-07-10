@@ -149,15 +149,13 @@ var getSystemCoords = function(system, bot, message) {
 }
 
 var getNearbySystems = function(name, range, bot, message) {
-	var systemName = "";
-
 	_getSystemOrCmdrCoords(name, function(coords) {
 		if (coords) {
 			var systemName = coords.name;
 			_getNearbySystems(systemName, range, function(data) {
 				if (data) {
-					var output = "";
-					var lines = 0;
+					var output = message.author + "\n";
+					var lines = 1;
 
 					for (var index=0; index<data.length; index++) {
 						if (data[index].name == systemName) {
@@ -167,13 +165,13 @@ var getNearbySystems = function(name, range, bot, message) {
 						distance = _calcDistance(coords.coords, data[index].coords);
 						distance = Number(distance).toFixed(2);
 
-						output += data[index].name + " (" + distance + " ly)\n";
+						output += data[index].name + "\t(" + distance + " ly)\n";
 						lines++;
 
 						if (lines == 20) {
 							bot.sendMessage(message.channel, output);
-							output = "";
-							lines = 0;
+							output = message.author + "\n";
+							lines = 1;
 						}
 					}
 
