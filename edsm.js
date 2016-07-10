@@ -149,6 +149,8 @@ var getSystemCoords = function(system, bot, message) {
 }
 
 var getNearbySystems = function(name, range, bot, message) {
+	bot.sendMessage(message.channel, "This may take a while...");
+
 	_getSystemOrCmdrCoords(name, function(coords) {
 		if (coords) {
 			var systemName = coords.name;
