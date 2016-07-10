@@ -213,7 +213,6 @@ var getRoute = function(first, second, range, bot, message) {
 							var closestSystemJump = null;
 
 							for (var index=0; index<data.length; index++) {
-								console.log(data[index].coords);
 								distance = _calcDistance(secondSystemCoords.coords, data[index].coords);
 								distance = Number(distance);
 
