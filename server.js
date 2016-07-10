@@ -25,8 +25,29 @@ try{
 	//no stored messages
 	messagebox = {};
 }
+
 function updateMessagebox(){
 	require("fs").writeFile("./messagebox.json",JSON.stringify(messagebox,null,2), null);
+}
+
+var edsmMappings;
+
+try {
+	edsmMappings = require("./edsmMappings.json");
+} catch(e) {
+	edsmMappings = {};
+}
+
+function updateEdsmMappings() {
+	require("fs").writeFile("./edsmMappings.json", JSON.stringify(edsmMappings, null, 2));
+}
+
+function getEdsmUser(user) {
+	if (!edsmMappings[user]) {
+		return null;
+	} else {
+		return edsmMappings[user];
+	}
 }
 
 var compileArgs = function(args) {
@@ -248,6 +269,91 @@ var commands = {
 
 			var name = compileArgs(args);
 			edsm.getNearbySystems(name, range, bot, msg);
+		}
+	},
+	"register": {
+		usage: "<name>",
+		help: "Register a mapping from your Discord user to your EDSM user.",
+		process: function(args, bot, msg) {
+			args.shift();
+			var edsmUser = args.join(" ");
+			edsmMappings[msg.author] = edsmUser;
+			updateEdsmMappings();
+			bot.sendMessage(msg.channel, "Mapping stored.");
+		}
+	},
+	"unregister": {
+		help: "Delete the mapping from your Discord user to your EDSM user.",
+		process: function(args, bot, msg) {
+			if (!edsmMappings[msg.author]) {
+				bot.sendMessage(msg.channel, "No EDSM Username found.");
+			} else {
+				delete edsmMappings[msg.author];
+				updateEdsmMappings();
+				bot.sendMessage(msg.channel, "Mapping removed.");
+			}
+		}
+	},
+	"getEdsmUser": {
+		usage: "[name]",
+		help: "Get your or the given user's EDSM Username.",
+		process: function(args, bot, msg) {
+			args.shift();
+			var user = args.join(" ");
+
+			if (!user) {
+				user = msg.author;
+			}
+
+			edsmUser = getEdsmUser(user);
+
+			if (!edsmUser) {
+				bot.sendMessage(msg.channel, "No EDSM Username found for " + user);
+			} else {
+				bot.sendMessage(msg.channel, edsmUser);
+			}
+		}
+	},
+	"triangulate": {
+		usage: "<system>",
+		help: "Ask the registered EDSM Users for help to triangulate a system.",
+		process: function(args, bot, msg) {
+			var system = compileArgs(args);
+			var usernames = Object.keys(edsmMappings);
+
+			if (usernames.length == 0) {
+				bot.sendMessage(msg.channel, "There are no registered EDSM users.");
+			} else {
+				var message = usernames.join(", ") + "\n";
+				message += msg.author + " is asking for your help to triangulate the system " + system + ".\n";
+				message += "Please submit your distances using the " + config.COMMAND_PREFIX + "submit command."
+				bot.sendMessage(msg.channel, message);
+			}
+		}
+	},
+	"submit": {
+		usage: "<targetSystem> " + config.NAME_SEPARATOR + " <yourSystem> <distance>",
+		help: "Submit the distance to the given system.",
+		process: function(args, bot, msg) {
+			var distance = args.pop();
+			var distanceRegEx = new RegExp('^\\d+(\\.\\d{1,2})?$');
+
+			if (!distanceRegEx.test(distance)) {
+				bot.sendMessage(msg.channel, "Invalid distance.");
+				return;
+			}
+
+			var systems = compileArgs(args).split(config.NAME_SEPARATOR);
+
+			if (systems.length != 2) {
+				bot.sendMessage(msg.channel, "You have not provided enough system names.");
+				return;
+			}
+
+			var targetSystem = systems[0].trim();
+			var referenceSystem = systems[1].trim();
+			var edsmUser = getEdsmUser(msg.author);
+			edsm.submitDistance(targetSystem, referenceSystem, distance, edsmUser, bot, msg);
 		}
 	},
 	"help": {

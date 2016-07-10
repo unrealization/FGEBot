@@ -138,6 +138,53 @@ var _getCoordString = function(coords) {
 	return "[ " + coords.coords.x + " : " + coords.coords.y + " : " + coords.coords.z + " ]";
 }
 
+var _submitDistance = function(targetSystem, referenceSystem, distance, commander, callback) {
+	var key = targetSystem.toLowerCase();
+
+	if (aliases[key]) {
+		targetSystem = aliases[key];
+	}
+
+	key = referenceSystem.toLowerCase();
+
+	if (aliases[key]) {
+		referenceSystem = aliases[key];
+	}
+	
+	var data = {
+		"data": {
+			"test": 1,
+			"commander": commander,
+			"p0": {
+				"name": targetSystem
+			},
+			"refs": [
+				{
+					"name": referenceSystem,
+					"dist": Number(distance)
+				}
+			]
+		}
+	};
+
+	var jsonData = [];
+	jsonData["data"] = JSON.stringify(data);
+	console.log(jsonData["data"]);
+
+	client.post("https://www.edsm.net/api-v1/submit-distances", jsonData, function(data, response) {
+		console.log(data);
+		if (data) {
+			if (data.length == 0) {
+				data = null;
+			}
+		}
+
+		callback(data);
+	}).on('error', function(err) {
+		callback(null);
+	});
+}
+
 var getSystemCoords = function(system, bot, message) {
 	_getSystemCoords(system, function(coords) {
 		var output = "Sorry, " + system + " is not in EDSM";
@@ -186,6 +233,51 @@ var getNearbySystems = function(name, range, bot, message) {
 			bot.sendMessage(message.channel, name + " not found.");
 		}
 	});
+}
+
+var submitDistance = function(targetSystem, referenceSystem, distance, commander, bot, message) {
+	_submitDistance(targetSystem, referenceSystem, distance, commander, function(data) {
+	});
+//
+/*	_getSystemOrCmdrCoords(name, function(coords) {
+		if (coords) {
+			var systemName = coords.name;
+			_getNearbySystems(systemName, range, function(data) {
+				if (data) {
+					var output = message.author + "\n";
+					var lines = 1;
+
+					for (var index=0; index<data.length; index++) {
+						if (data[index].name == systemName) {
+							continue;
+						}
+
+						distance = _calcDistance(coords.coords, data[index].coords);
+						distance = Number(distance).toFixed(2);
+
+						output += data[index].name + "\t(" + distance + " ly)\n";
+						lines++;
+
+						if (lines == 20) {
+							bot.sendMessage(message.channel, output);
+							output = message.author + "\n";
+							lines = 1;
+						}
+					}
+
+					if (output == "") {
+						bot.sendMessage(message.channel, "No systems found.");
+					} else {
+						bot.sendMessage(message.channel, output);
+					}
+				}
+			});
+		} else {
+			bot.sendMessage(message.channel, name + " not found.");
+		}
+	});*/
+//
+	bot.sendMessage(message.channel, "This function is not yet complete.");
 }
 
 var getRoute = function(first, second, range, bot, message) {
@@ -327,4 +419,5 @@ exports.getCmdrCoords = getCmdrCoords;
 exports.getDistance = getDistance;
 exports.getNearbySystems = getNearbySystems;
 exports.getRoute = getRoute;
+exports.submitDistance = submitDistance;
 exports.aliases = aliases
