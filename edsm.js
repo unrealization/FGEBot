@@ -7,6 +7,16 @@ aliases["kippax ring"] = "HIP 72043";
 aliases["rr lyrae"] = "HIP 95497";
 aliases["jaques station"] = "Eol Prou RS-T d3-94";
 
+var sanitizeString = function(input) {
+	var output = input.replace(" ", "%20").replace("+", "%2B");
+	return output;
+}
+
+var desanitizeString = function(input) {
+	var output = input.replace("%20", " ").replace("%2B", "+");
+	return output;
+}
+
 var _getSystem = function(commander, callback) {
 	client.get("http://www.edsm.net/api-logs-v1/get-position?commanderName=" + commander, function (data, response) {
 		try {
@@ -139,11 +149,13 @@ var _getCoordString = function(coords) {
 }
 
 var getSystemCoords = function(system, bot, message) {
-	_getSystemCoords(system, function(coords) {
+	_getSystemCoords(sanitizeString(system), function(coords) {
 		var output = "Sorry, " + system + " is not in EDSM";
+
 		if (coords) {
 			output = "System: " + coords.name + " " + _getCoordString(coords);
 		}
+
 		bot.sendMessage(message.channel, output);
 	});
 }
@@ -151,10 +163,10 @@ var getSystemCoords = function(system, bot, message) {
 var getNearbySystems = function(name, range, bot, message) {
 	bot.sendMessage(message.channel, "This may take a while...");
 
-	_getSystemOrCmdrCoords(name, function(coords) {
+	_getSystemOrCmdrCoords(sanitizeString(name), function(coords) {
 		if (coords) {
 			var systemName = coords.name;
-			_getNearbySystems(systemName, range, function(data) {
+			_getNearbySystems(sanitizeString(systemName), range, function(data) {
 				if (data) {
 					var output = message.author + "\n";
 					var lines = 1;
@@ -193,11 +205,11 @@ var getNearbySystems = function(name, range, bot, message) {
 var getRoute = function(first, second, range, bot, message) {
 	bot.sendMessage(message.channel, "This may take a while...");
 
-	_getSystemOrCmdrCoords(first, function(firstSystemCoords) {
+	_getSystemOrCmdrCoords(sanitizeString(first), function(firstSystemCoords) {
 		if (firstSystemCoords) {
 			var firstSystemName = firstSystemCoords.name;
 
-			_getSystemOrCmdrCoords(second, function(secondSystemCoords) {
+			_getSystemOrCmdrCoords(sanitizeString(second), function(secondSystemCoords) {
 				if (secondSystemCoords) {
 					var secondSystemName = secondSystemCoords.name;
 					distance = _calcDistance(firstSystemCoords.coords, secondSystemCoords.coords);
@@ -246,7 +258,7 @@ var getRoute = function(first, second, range, bot, message) {
 									bot.sendMessage(message.channel, output);
 								} else {
 									currentSystem = closestSystem;
-									_getNearbySystems(currentSystem.name, range, routingCallback);
+									_getNearbySystems(sanitizeString(currentSystem.name), range, routingCallback);
 								}
 							}
 						} else {
@@ -256,7 +268,7 @@ var getRoute = function(first, second, range, bot, message) {
 					};
 
 					currentSystem = firstSystemCoords;
-					_getNearbySystems(firstSystemName, range, routingCallback);
+					_getNearbySystems(sanitizeString(firstSystemName), range, routingCallback);
 				} else {
 					bot.sendMessage(message.channel, second + " not found.");
 				}
@@ -296,9 +308,9 @@ var getCmdrCoords = function(commander, bot, message) {
 
 var getDistance = function(first, second, bot, message) {
 	// Each query item could be a system or a commander...
-	_getSystemOrCmdrCoords(first, function(firstCoords) {
+	_getSystemOrCmdrCoords(sanitizeString(first), function(firstCoords) {
 		if (firstCoords) {
-			_getSystemOrCmdrCoords(second, function(secondCoords) {
+			_getSystemOrCmdrCoords(sanitizeString(second), function(secondCoords) {
 				if (secondCoords) {
 					if (firstCoords.coords && secondCoords.coords) {
 						var dist = _calcDistance(firstCoords.coords, secondCoords.coords);
