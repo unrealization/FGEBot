@@ -6,6 +6,7 @@ var aliases = {};
 aliases["kippax ring"] = "HIP 72043";
 aliases["rr lyrae"] = "HIP 95497";
 aliases["jaques station"] = "Eol Prou RS-T d3-94";
+aliases["sag a"] = "Sagittarius A*;
 
 var _getSystem = function(commander, callback) {
 	client.get("http://www.edsm.net/api-logs-v1/get-position?commanderName=" + commander, function (data, response) {
