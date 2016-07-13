@@ -58,7 +58,7 @@ var _getPositionString = function(commander, data) {
 }
  
 var getPosition = function(commander, bot, message) {
-	_getSystem(commander, function(data) {
+	_getSystem(sanitizeString(commander), function(data) {
 		bot.sendMessage(message.channel, _getPositionString(commander, data));
 	});
 }
@@ -101,17 +101,18 @@ var _getNearbySystems = function(system, range, callback) {
 
 			callback(data);
 		}
-	}).on('error', function(erro) {
+	}).on('error', function(err) {
 		callback(null);
 	});
 }
 
 var _getCommanderCoords = function(commander, callback) {
-	_getSystem(commander, function(data) {
+	_getSystem(sanitizeString(commander), function(data) {
 		var output = _getPositionString(commander, data);
+
 		if (data) {
 			if (data.system) {
-				_getSystemCoords(data.system, function(coords) {
+				_getSystemCoords(sanitizeString(data.system), function(coords) {
 					if (coords) {
 						callback(coords);
 					} else {
