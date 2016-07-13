@@ -17,6 +17,8 @@ var enumerate = function(obj) {
 	}
 }
 
+edsm.setUseBetaServer(config.EDSM_USE_BETASERVER);
+
 var messagebox;
 
 try{
@@ -48,6 +50,22 @@ function getEdsmUser(user) {
 	} else {
 		return edsmMappings[user];
 	}
+}
+
+function allowSubmission(user, message) {
+	if (config.EDSM_SUBMIT_ROLES == 0) {
+		return 1;
+	}
+
+	var userRoles = message.server.rolesOfUser(user);
+
+	for (var index=0; index<userRoles.length; index++) {
+		if (config.EDSM_SUBMIT_ROLES.indexOf(userRoles[index].name.toLowerCase()) > -1) {
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 var compileArgs = function(args) {
@@ -314,19 +332,42 @@ var commands = {
 			}
 		}
 	},
-	"triangulate": {
+	"trilaterate": {
 		usage: "<system>",
-		help: "Ask the registered EDSM Users for help to triangulate a system.",
+		help: "Ask the registered EDSM Users for help to trilaterate a system.",
 		process: function(args, bot, msg) {
 			var system = compileArgs(args);
-			var usernames = Object.keys(edsmMappings);
+			var usernames = [];
 
-			if (usernames.length == 0) {
-				bot.sendMessage(msg.channel, "There are no registered EDSM users.");
+			if (config.TRILATERATION_CONTACT_EDSMUSERS == 1) {
+				var registeredNames = Object.keys(edsmMappings);
+
+				for (var index=0; index<registeredNames.length; index++) {
+					if (allowSubmission(registeredNames[index])) {
+						usernames.push(registeredNames[index]);
+					}
+				}
+			}
+
+			if (usernames.length == 0 && config.TRILATERATION_CONTACT_ROLES.length == 0) {
+				bot.sendMessage(msg.channel, "It appears as if there is nobody available to help you with this.");
 			} else {
-				var message = usernames.join(", ") + "\n";
-				message += msg.author + " is asking for your help to triangulate the system " + system + ".\n";
-				message += "Please submit your distances using the " + config.COMMAND_PREFIX + "submit command."
+				var message = "";
+
+				if (config.TRILATERATION_CONTACT_ROLES > 0) {
+					message += config.TRILATERATION_CONTACT_ROLES.join(", ") + "\n";
+				}
+
+				if (usernames.length > 0) {
+					message += usernames.join(", ") + "\n";
+				}
+
+				message += msg.author + " is asking for your help to trilaterate the system " + system + ".\n";
+
+				if (config.EDSM_ENABLE_SUBMISSION == 1) {
+					message += "Please submit your distances using the " + config.COMMAND_PREFIX + "submit command.";
+				}
+
 				bot.sendMessage(msg.channel, message);
 			}
 		}
@@ -335,6 +376,16 @@ var commands = {
 		usage: "<targetSystem> " + config.NAME_SEPARATOR + " <yourSystem> <distance>",
 		help: "Submit the distance to the given system.",
 		process: function(args, bot, msg) {
+			if (config.EDSM_ENABLE_SUBMISSION != 1) {
+				bot.sendMessage(msg.channel, "Distance submission is currently disabled.");
+				return;
+			}
+
+			if (!allowSubmission(msg.author, msg)) {
+				bot.sendMessage(msg.channel, "You are not allowed to submit distances.");
+				return;
+			}
+
 			var distance = args.pop();
 			var distanceRegEx = new RegExp('^\\d+(\\.\\d{1,2})?$');
 

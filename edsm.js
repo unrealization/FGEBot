@@ -8,6 +8,8 @@ aliases["rr lyrae"] = "HIP 95497";
 aliases["jaques station"] = "Eol Prou RS-T d3-94";
 aliases["sag a"] = "Sagittarius A*";
 
+var useBetaServer = 1;
+
 var sanitizeString = function(input) {
 	var output = input.replace(" ", "%20").replace("+", "%2B");
 	return output;
@@ -18,8 +20,21 @@ var desanitizeString = function(input) {
 	return output;
 }
 
+function getServerString() {
+	var serverString = "";
+
+	if (useBetaServer == 0) {
+		serverString = "https://www.edsm.net";
+	} else {
+		serverString = "http://beta.edsm.net:8080";
+	}
+
+	return serverString;
+}
+
 var _getSystem = function(commander, callback) {
-	client.get("http://www.edsm.net/api-logs-v1/get-position?commanderName=" + commander, function (data, response) {
+	var serverString = getServerString();
+	client.get(serverString + "/api-logs-v1/get-position?commanderName=" + commander, function (data, response) {
 		try {
 			callback(data);
 		} catch(e) {
@@ -65,10 +80,13 @@ var getPosition = function(commander, bot, message) {
 
 var _getSystemCoords = function(system, callback) {
 	var key = system.toLowerCase();
+
 	if (aliases[key]) {
 		system = aliases[key];
 	}
-	client.get("http://www.edsm.net/api-v1/system?systemName=" + system + "&coords=1", function (data, response) {
+
+	var serverString = getServerString();
+	client.get(serverString + "/api-v1/system?systemName=" + system + "&coords=1", function (data, response) {
 		if (data) {
 			if (!data.name) {
 				data = null;
@@ -93,7 +111,8 @@ var _getNearbySystems = function(system, range, callback) {
 		rangeParameter = "&radius=" + range;
 	}
 
-	client.get("https://www.edsm.net/api-v1/sphere-systems?systemName=" + system + "&coords=1" + rangeParameter, function(data, response) {
+	var serverString = getServerString();
+	client.get(serverString + "/api-v1/sphere-systems?systemName=" + system + "&coords=1" + rangeParameter, function(data, response) {
 		if (data) {
 			if (data.length == 0) {
 				data = null;
@@ -164,7 +183,7 @@ var _submitDistance = function(targetSystem, referenceSystem, distance, commande
 	
 	var data = {
 		"data": {
-			"test": 1,
+			"test": 0,
 			"commander": commander,
 			"p0": {
 				"name": targetSystem
@@ -180,9 +199,10 @@ var _submitDistance = function(targetSystem, referenceSystem, distance, commande
 
 	var jsonData = [];
 	jsonData["data"] = JSON.stringify(data);
-	console.log(jsonData["data"]);
 
-	client.post("https://www.edsm.net/api-v1/submit-distances", jsonData, function(data, response) {
+	var serverString = getServerString();
+
+	client.post(serverString + "/api-v1/submit-distances", jsonData, function(data, response) {
 		console.log(data);
 		if (data) {
 			if (data.length == 0) {
@@ -252,6 +272,47 @@ var getNearbySystems = function(name, range, bot, message) {
 
 var submitDistance = function(targetSystem, referenceSystem, distance, commander, bot, message) {
 	_submitDistance(targetSystem, referenceSystem, distance, commander, function(data) {
+		if (data) {
+			var output = message.author + "\n";
+
+			switch(data.basesystem.msgnum) {
+				case 108:
+					output += data.basesystem.msg + "\n";
+					output += "Current number of reference systems: " + data.basesystem.refnum + "\n";
+					break;
+				case 106:
+					output += "Coordinates not found.\n";
+					output += "Please supply more references for " +data.basesystem.name + ".\n";
+					break;
+				case 104:
+					output += "Coordinates for " + data.basesystem.name + " have been found.\n";
+					output += _getCoordString(data.basesystem) + "\n";
+					break;
+				case 102:
+					output += "Coordinates for " + data.basesystem.name + " are already known.\n";
+					output += _getCoordString(data.basesystem) + "\n";
+					break;
+				default:
+					output += data.basesystem.msg + "\n";
+					break;
+			}
+	
+			for (var index=0; index<data.distances.length; index++) {
+				output += data.distances[index].msg + "\n";
+
+				switch(data.distances[index].msgnum) {
+					case 200:
+						output += "\t" + data.distances[index].name + " -> " + data.basesystem.name + " = " + data.distances[index].dist + " ly\n";
+						break;
+					default:
+						break;
+				}
+			}
+
+			bot.sendMessage(message.channel, output);
+		} else {
+			bot.sendMessage(message.channel, "It appears as if there has been some sort of problem.");
+		}
 	});
 //
 /*	_getSystemOrCmdrCoords(name, function(coords) {
@@ -292,7 +353,6 @@ var submitDistance = function(targetSystem, referenceSystem, distance, commander
 		}
 	});*/
 //
-	bot.sendMessage(message.channel, "This function is not yet complete.");
 }
 
 var getRoute = function(first, second, range, bot, message) {
@@ -428,6 +488,16 @@ var getDistance = function(first, second, bot, message) {
 	});
 }
 
+var setUseBetaServer = function(useBeta) {
+	if (useBeta == 0) {
+		console.log("Using the Live Server");
+	} else {
+		console.log("Using the Beta Server");
+	}
+
+	useBetaServer = useBeta;
+}
+
 exports.getPosition = getPosition;
 exports.getSystemCoords = getSystemCoords;
 exports.getCmdrCoords = getCmdrCoords;
@@ -435,4 +505,5 @@ exports.getDistance = getDistance;
 exports.getNearbySystems = getNearbySystems;
 exports.getRoute = getRoute;
 exports.submitDistance = submitDistance;
+exports.setUseBetaServer = setUseBetaServer;
 exports.aliases = aliases
