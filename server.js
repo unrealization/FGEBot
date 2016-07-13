@@ -10,6 +10,7 @@ var startTime = Date.now();
 
 var enumerate = function(obj) {
 	var key;
+
 	for (key in obj) {
 		if (typeof obj[key] !== 'function') {
 			console.log(key + ": " + obj[key]);
@@ -19,12 +20,13 @@ var enumerate = function(obj) {
 
 var messagebox;
 
-try{
+try {
 	messagebox = require("./messagebox.json");
 } catch(e) {
 	//no stored messages
 	messagebox = {};
 }
+
 function updateMessagebox(){
 	require("fs").writeFile("./messagebox.json",JSON.stringify(messagebox,null,2), null);
 }
@@ -44,45 +46,50 @@ var commands = {
 		process: function(args, bot, message) { bot.sendMessage(message.channel, VERSION); }
 	},
 	"servers": {
-        help: "lists servers bot is connected to",
-        process: function(args, bot, msg) { bot.sendMessage(msg.channel,bot.servers); }
-    },
-    "channels": {
-        help: "lists channels bot is connected to",
-        process: function(args, bot, msg) { bot.sendMessage(msg.channel,bot.channels); }
-    },
-    "myid": {
-        help: "returns the user id of the sender",
-        process: function(args, bot, msg) { bot.sendMessage(msg.channel,msg.author.id); }
-    },
-    "say": {
-        usage: "<message>",
-        help: "bot says message",
-        process: function(args, bot,msg) { bot.sendMessage(msg.channel,compileArgs(args));}
-    },
+		help: "lists servers bot is connected to",
+		process: function(args, bot, msg) { bot.sendMessage(msg.channel,bot.servers); }
+	},
+	"channels": {
+		help: "lists channels bot is connected to",
+		process: function(args, bot, msg) { bot.sendMessage(msg.channel,bot.channels); }
+	},
+	"myid": {
+		help: "returns the user id of the sender",
+		process: function(args, bot, msg) { bot.sendMessage(msg.channel,msg.author.id); }
+	},
+	"say": {
+		usage: "<message>",
+		help: "bot says message",
+		process: function(args, bot,msg) { bot.sendMessage(msg.channel,compileArgs(args));}
+	},
 	"announce": {
-        usage: "<message>",
-        help: "bot says message with text to speech",
-        process: function(args, bot,msg) { bot.sendMessage(msg.channel,compileArgs(args),{tts:true});}
-    },
-    "userid": {
+		usage: "<message>",
+		help: "bot says message with text to speech",
+		process: function(args, bot,msg) { bot.sendMessage(msg.channel,compileArgs(args),{tts:true});}
+	},
+	"userid": {
 		usage: "<user to get id of>",
 		help: "Returns the unique id of a user. This is useful for permissions.",
 		process: function(args,bot,msg) {
 			var suffix = compileArgs(args);
 			console.log("userid [" + suffix + "]");
-			if(suffix){
+
+			if(suffix) {
 				var server = msg.channel.server;
+
 				if (server) {
 					var users = server.members.getAll("username",suffix);
-					if(users.length == 1){
+
+					if(users.length == 1) {
 						bot.sendMessage(msg.channel, "The id of " + users[0] + " is " + users[0].id)
-					} else if(users.length > 1){
+					} else if(users.length > 1) {
 						var response = "multiple users found:";
-						for(var i=0;i<users.length;i++){
+
+						for(var i=0;i<users.length;i++) {
 							var user = users[i];
 							response += "\nThe id of " + user + " is " + user.id;
 						}
+
 						bot.sendMessage(msg.channel,response);
 					} else {
 						bot.sendMessage(msg.channel,"No user " + suffix + " found!");
@@ -110,17 +117,22 @@ var commands = {
 		process: function(args,bot,msg) {
 			var user = args.shift();
 			var message = args.join(' ');
-			if(user.startsWith('<@')){
+
+			if(user.startsWith('<@')) {
 				user = user.substr(2,user.length-3);
 			}
+
 			var target = msg.channel.server.members.get("id",user);
-			if(!target){
+
+			if(!target) {
 				target = msg.channel.server.members.get("username",user);
 			}
+
 			messagebox[target.id] = {
 				channel: msg.channel.id,
 				content: target + ", " + msg.author + " said: " + message
 			};
+
 			updateMessagebox();
 			bot.sendMessage(msg.channel,"message saved.")
 		}
@@ -140,42 +152,40 @@ var commands = {
 			msec -= mins * 1000 * 60;
 			var secs = Math.floor(msec / 1000);
 			var timestr = "";
+
 			if(days > 0) {
 				timestr += days + " days ";
 			}
+
 			if(hours > 0) {
 				timestr += hours + " hours ";
 			}
+
 			if(mins > 0) {
 				timestr += mins + " minutes ";
 			}
+
 			if(secs > 0) {
 				timestr += secs + " seconds ";
 			}
+
 			bot.sendMessage(msg.channel,"Uptime: " + timestr);
 		}
 	},
 	"locate": {
 		usage: "<name>",
 		help: 'Gets the location of a commander',
-		process: function(args,bot,msg) {
-			edsm.getPosition(compileArgs(args), bot, msg);
-		}
+		process: function(args,bot,msg) { edsm.getPosition(compileArgs(args), bot, msg); }
 	},
 	"syscoords": {
 		usage: "<system>",
 		help: 'Gets the galactic coordinates of a system',
-		process: function(args,bot,msg) {
-			var system = compileArgs(args);
-			edsm.getSystemCoords(system, bot, msg);
-		}
+		process: function(args,bot,msg) { edsm.getSystemCoords(compileArgs(args), bot, msg); }
 	},
 	"cmdrcoords": {
 		usage: "<name>",
 		help: "Gets the location of a commander, including system coordinates, if they are available",
-		process: function(args,bot,msg) {
-			edsm.getCmdrCoords(compileArgs(args), bot, msg);
-		}
+		process: function(args,bot,msg) { edsm.getCmdrCoords(compileArgs(args), bot, msg); }
 	},
 	"distance": {
 		usage: "<first> " + config.NAME_SEPARATOR + " <second>",
@@ -184,11 +194,13 @@ var commands = {
 			var query = compileArgs(args).split(config.NAME_SEPARATOR);
 			var first = query[0].trim();
 			var second = null;
+
 			if (query.length == 1) {
 				second = "Sol";
 			} else {
 				second = query[1].trim();
 			}
+
 			edsm.getDistance(first, second, bot, msg);
 		}		
 	},
@@ -197,11 +209,13 @@ var commands = {
 		process: function(args,bot,msg) {
 			var key;
 			var output = "Supported stellar aliases:";
+
 			for (key in edsm.aliases) {
 				if (typeof edsm.aliases[key] != 'function') {
 					output += "\n    *" + key + " -> " + edsm.aliases[key];
 				}
 			}
+
 			bot.sendMessage(msg.channel, output);
 		}
 	},
@@ -255,6 +269,7 @@ var commands = {
 		process: function(args, bot, msg) {
 			var output = VERSION + " commands:";
 			var key;
+
 			for (key in commands) {
 				output += "\n\t";
 
@@ -270,6 +285,7 @@ var commands = {
 				output += "\n\t\t\t";
 				output += commands[key].help;
 			}
+
 			// console.log(output);
 			bot.sendMessage(msg.channel, output);
 		}
@@ -319,16 +335,17 @@ FGEBot.on("message", function(message){
 			// First word is a command
 			var args = messageContent.split(" ");
 			var cmd = commands[args[0]];
-			if(cmd) {
+
+			if (cmd) {
 				try{
 					cmd.process(args, FGEBot, message);
 				} catch(e){
-					if(config.debug){
+					if (config.debug) {
 						FGEBot.sendMessage(message.channel, "command " + message.content + " failed :(\n" + e.stack);
 					}
 				}
 			} else {
-				if(config.respondToInvalid){
+				if (config.respondToInvalid) {
 					FGEBot.sendMessage(message.channel, "Invalid command " + message.content);
 				}
 			}
@@ -344,24 +361,25 @@ FGEBot.on("presence", function(user,status,gameId) {
 	//console.log("presence update");
 	// console.log(user+" went "+status);
 	//}
-	try{
-	if(status != 'offline'){
-		if(messagebox.hasOwnProperty(user.id)){
-			console.log("found message for " + user.id);
-			var message = messagebox[user.id];
-			var channel = FGEBot.channels.get("id",message.channel);
-			delete messagebox[user.id];
-			updateMessagebox();
-			FGEBot.sendMessage(channel,message.content);
+	try {
+		if(status != 'offline'){
+			if(messagebox.hasOwnProperty(user.id)){
+				console.log("found message for " + user.id);
+				var message = messagebox[user.id];
+				var channel = FGEBot.channels.get("id",message.channel);
+				delete messagebox[user.id];
+				updateMessagebox();
+				FGEBot.sendMessage(channel,message.content);
+			}
 		}
-	}
-	}catch(e){}
+	} catch(e) {}
 });
 
 FGEBot.login(config.LOGIN, config.PASSWORD, function(error, token) {
 	if (error) {
 		console.log("Error logging in: " + error);
 	}
+
 	if (token) {
 		console.log(VERSION + " logged in with token " + token);
 	}
