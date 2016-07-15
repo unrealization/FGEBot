@@ -2,7 +2,7 @@ var Discord = require("discord.js");
 var config = require('./config.js');
 var edsm = require('./edsm.js');
 
-const VERSION = "FGEBot Version 0.3.2-JTJ5.3";
+const VERSION = "FGEBot Version 0.3.2-JTJ6";
 
 var FGEBot = new Discord.Client();
 
@@ -18,6 +18,8 @@ var enumerate = function(obj) {
 	}
 }
 
+edsm.setUseBetaServer(config.EDSM_USE_BETASERVER);
+
 var messagebox;
 
 try {
@@ -29,6 +31,42 @@ try {
 
 function updateMessagebox(){
 	require("fs").writeFile("./messagebox.json",JSON.stringify(messagebox,null,2), null);
+}
+
+var edsmMappings;
+
+try {
+	edsmMappings = require("./edsmMappings.json");
+} catch(e) {
+	edsmMappings = {};
+}
+
+function updateEdsmMappings() {
+	require("fs").writeFile("./edsmMappings.json", JSON.stringify(edsmMappings, null, 2));
+}
+
+function getEdsmUser(user) {
+	if (!edsmMappings[user]) {
+		return null;
+	} else {
+		return edsmMappings[user];
+	}
+}
+
+function allowSubmission(user, message) {
+	if (config.EDSM_SUBMIT_ROLES == 0) {
+		return 1;
+	}
+
+	var userRoles = message.server.rolesOfUser(user);
+
+	for (var index=0; index<userRoles.length; index++) {
+		if (config.EDSM_SUBMIT_ROLES.indexOf(userRoles[index].name.toLowerCase()) > -1) {
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 var compileArgs = function(args) {
@@ -262,6 +300,124 @@ var commands = {
 
 			var name = compileArgs(args);
 			edsm.getNearbySystems(name, range, bot, msg);
+		}
+	},
+	"register": {
+		usage: "<name>",
+		help: "Register a mapping from your Discord user to your EDSM user.",
+		process: function(args, bot, msg) {
+			args.shift();
+			var edsmUser = args.join(" ");
+			edsmMappings[msg.author] = edsmUser;
+			updateEdsmMappings();
+			bot.sendMessage(msg.channel, "Mapping stored.");
+		}
+	},
+	"unregister": {
+		help: "Delete the mapping from your Discord user to your EDSM user.",
+		process: function(args, bot, msg) {
+			if (!edsmMappings[msg.author]) {
+				bot.sendMessage(msg.channel, "No EDSM Username found.");
+			} else {
+				delete edsmMappings[msg.author];
+				updateEdsmMappings();
+				bot.sendMessage(msg.channel, "Mapping removed.");
+			}
+		}
+	},
+	"getEdsmUser": {
+		usage: "[name]",
+		help: "Get your or the given user's EDSM Username.",
+		process: function(args, bot, msg) {
+			args.shift();
+			var user = args.join(" ");
+
+			if (!user) {
+				user = msg.author;
+			}
+
+			edsmUser = getEdsmUser(user);
+
+			if (!edsmUser) {
+				bot.sendMessage(msg.channel, "No EDSM Username found for " + user);
+			} else {
+				bot.sendMessage(msg.channel, edsmUser);
+			}
+		}
+	},
+	"trilaterate": {
+		usage: "<system>",
+		help: "Ask the registered EDSM Users for help to trilaterate a system.",
+		process: function(args, bot, msg) {
+			var system = compileArgs(args);
+			var usernames = [];
+
+			if (config.TRILATERATION_CONTACT_EDSMUSERS == 1) {
+				var registeredNames = Object.keys(edsmMappings);
+
+				for (var index=0; index<registeredNames.length; index++) {
+					if (allowSubmission(registeredNames[index])) {
+						usernames.push(registeredNames[index]);
+					}
+				}
+			}
+
+			if (usernames.length == 0 && config.TRILATERATION_CONTACT_ROLES.length == 0) {
+				bot.sendMessage(msg.channel, "It appears as if there is nobody available to help you with this.");
+			} else {
+				var message = "";
+
+				if (config.TRILATERATION_CONTACT_ROLES > 0) {
+					message += config.TRILATERATION_CONTACT_ROLES.join(", ") + "\n";
+				}
+
+				if (usernames.length > 0) {
+					message += usernames.join(", ") + "\n";
+				}
+
+				message += msg.author + " is asking for your help to trilaterate the system " + system + ".\n";
+
+				if (config.EDSM_ENABLE_SUBMISSION == 1) {
+					message += "Please submit your distances using the " + config.COMMAND_PREFIX + "submit command.";
+				}
+
+				bot.sendMessage(msg.channel, message);
+			}
+		}
+	},
+	"submit": {
+		usage: "<targetSystem> " + config.NAME_SEPARATOR + " <yourSystem> <distance>",
+		help: "Submit the distance to the given system.",
+		process: function(args, bot, msg) {
+			if (config.EDSM_ENABLE_SUBMISSION != 1) {
+				bot.sendMessage(msg.channel, "Distance submission is currently disabled.");
+				return;
+			}
+
+			if (!allowSubmission(msg.author, msg)) {
+				bot.sendMessage(msg.channel, "You are not allowed to submit distances.");
+				return;
+			}
+
+			var distance = args.pop();
+			var distanceRegEx = new RegExp('^\\d+(\\.\\d{1,2})?$');
+
+			if (!distanceRegEx.test(distance)) {
+				bot.sendMessage(msg.channel, "Invalid distance.");
+				return;
+			}
+
+			var systems = compileArgs(args).split(config.NAME_SEPARATOR);
+
+			if (systems.length != 2) {
+				bot.sendMessage(msg.channel, "You have not provided enough system names.");
+				return;
+			}
+
+			var targetSystem = systems[0].trim();
+			var referenceSystem = systems[1].trim();
+			var edsmUser = getEdsmUser(msg.author);
+			edsm.submitDistance(targetSystem, referenceSystem, distance, edsmUser, bot, msg);
 		}
 	},
 	"help": {
