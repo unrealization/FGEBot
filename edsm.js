@@ -10,41 +10,18 @@ aliases["sag a"] = "Sagittarius A*";
 
 var useBetaServer = 1;
 
-var sanitizeString = function(input) {
-	var output = input.replace(" ", "%20").replace("+", "%2B");
-	return output;
+//internal helper functions
+var _sq2 = function(a, b) {
+	var val = a - b;
+	return val * val;
 }
 
-var desanitizeString = function(input) {
-	var output = input.replace("%20", " ").replace("%2B", "+");
-	return output;
+var _calcDistance = function(a, b) {
+	return Math.sqrt(_sq2(a.x, b.x) + _sq2(a.y, b.y) + _sq2(a.z, b.z));
 }
 
-function getServerString() {
-	var serverString = "";
-
-	if (useBetaServer == 0) {
-		serverString = "https://www.edsm.net";
-	} else {
-		serverString = "http://beta.edsm.net:8080";
-	}
-
-	return serverString;
-}
-
-var _getSystem = function(commander, callback) {
-	var serverString = getServerString();
-	client.get(serverString + "/api-logs-v1/get-position?commanderName=" + commander, function (data, response) {
-		try {
-			callback(data);
-		} catch(e) {
-			console.log('JSON parse exception', e);
-			callback(null);
-		}
-	}).on('error', function (err) {
-		callback(null);
-		console.log('Something went wrong on the request', err.request.options);
-	});
+var _getCoordString = function(coords) {
+	return "[ " + coords.coords.x + " : " + coords.coords.y + " : " + coords.coords.z + " ]";
 }
 
 var _getPositionString = function(commander, data) {
@@ -72,117 +49,182 @@ var _getPositionString = function(commander, data) {
 	return output;
 }
  
-var getPosition = function(commander, bot, message) {
-	_getSystem(sanitizeString(commander), function(data) {
-		bot.sendMessage(message.channel, _getPositionString(commander, data));
-	});
+function _sanitizeString(input) {
+	var output = input.replace(" ", "%20").replace("+", "%2B");
+	return output;
 }
 
-var _getSystemCoords = function(system, callback) {
-	var key = system.toLowerCase();
+function _desanitizeString(input) {
+	var output = input.replace("%20", " ").replace("%2B", "+");
+	return output;
+}
+
+function _checkAliases(system, unsanitized) {
+	var key = null;
+
+	if (unsanitized == 1) {
+		key = system.toLowerCase();
+	} else {
+		key = _desanitizeString(system).toLowerCase();
+	}
 
 	if (aliases[key]) {
-		system = aliases[key];
+		if (unsanitized == 1) {
+			system = aliases[key];
+		} else {
+			system = _sanitizeString(aliases[key]);
+		}
 	}
 
-	var serverString = getServerString();
-	client.get(serverString + "/api-v1/system?systemName=" + system + "&coords=1", function (data, response) {
-		if (data) {
-			if (!data.name) {
-				data = null;
-			}
-			callback(data);
-		}
-	}).on('error', function (err) {
-		callback(null);
-	});
+	return system;
 }
 
-var _getNearbySystems = function(system, range, callback) {
-	var key = system.toLowerCase();
+function _getServerString() {
+	var serverString = "";
 
-	if (aliases[key]) {
-		system = aliases[key];
+	if (useBetaServer == 0) {
+		serverString = "https://www.edsm.net";
+	} else {
+		serverString = "http://beta.edsm.net:8080";
 	}
 
-	var rangeParameter = "";
-
-	if (range!=null) {
-		rangeParameter = "&radius=" + range;
-	}
-
-	var serverString = getServerString();
-	client.get(serverString + "/api-v1/sphere-systems?systemName=" + system + "&coords=1" + rangeParameter, function(data, response) {
-		if (data) {
-			if (data.length == 0) {
-				data = null;
-			}
-
-			callback(data);
-		}
-	}).on('error', function(err) {
-		callback(null);
-	});
+	return serverString;
 }
 
-var _getCommanderCoords = function(commander, callback) {
-	_getSystem(sanitizeString(commander), function(data) {
+function _getCommanderCoordinates(commander, callback) {
+	function systemResponseHandler(data) {
 		var output = _getPositionString(commander, data);
 
 		if (data) {
 			if (data.system) {
-				_getSystemCoords(sanitizeString(data.system), function(coords) {
-					if (coords) {
-						callback(coords);
-					} else {
-						callback(null);
-					}
-				});
+				_getSystemCoordinates(_sanitizeString(data.system), coordinatesResponseHandler);
 			} else {
 				callback(null);
 			}
 		} else {
 			callback(null);
 		}
-	});
-}
+	}
 
-var _getSystemOrCmdrCoords = function(query, callback) {
-	_getSystemCoords(query, function(coords) {
+	function coordinatesResponseHandler(coords) {
 		if (coords) {
-			// console.log(query + " is a system");
 			callback(coords);
 		} else {
-			_getCommanderCoords(query, function(coords) {
-				// if (coords) {
-				// 	console.log(query + " is a commander");
-				// } else {
-				// 	console.log("Could not find " + query);
-				// }
-				callback(coords);
-			});
+			callback(null);
 		}
-	});
-}
-
-var _getCoordString = function(coords) {
-	return "[ " + coords.coords.x + " : " + coords.coords.y + " : " + coords.coords.z + " ]";
-}
-
-var _submitDistance = function(targetSystem, referenceSystem, distance, commander, callback) {
-	var key = targetSystem.toLowerCase();
-
-	if (aliases[key]) {
-		targetSystem = aliases[key];
 	}
 
-	key = referenceSystem.toLowerCase();
+	_getCommanderSystem(commander, systemResponseHandler);
+}
 
-	if (aliases[key]) {
-		referenceSystem = aliases[key];
+function _getSystemOrCommanderCoordinates(query, callback) {
+	function systemResponseHandler(coords) {
+		if (coords) {
+			callback(coords);
+		} else {
+			_getCommanderCoordinates(query, commanderResponseHandler);
+		}
 	}
-	
-	var data = {
+
+	function commanderResponseHandler(coords) {
+		if (coords) {
+			callback(coords);
+		} else {
+			callback(null);
+		}
+	}
+
+	_getSystemCoordinates(_checkAliases(query), systemResponseHandler);
+}
+
+//internal EDSM client functions
+function _getCommanderSystem(commander, callback) {
+	function responseHandler(data, response) {
+		try {
+			callback(data);
+		} catch(e) {
+			console.log("JSON parse exception", e);
+			callback(null);
+		}
+	}
+
+	function errorHandler(err) {
+		console.log("Something went wrong on the request", err.request.options);
+		callback(null);
+	}
+
+	var serverString = _getServerString();
+	client.get(serverString + "/api-logs-v1/get-position?commanderName=" + commander, responseHandler).on("error", errorHandler);
+}
+
+function _getNearbySystems(system, range, callback) {
+	function responseHandler(data, response) {
+		if (data) {
+			if (data.length == 0) {
+				data = null;
+			}
+
+			callback(data);
+		} else {
+			callback(null);
+		}
+	}
+
+	function errorHandler(err) {
+		callback(null);
+	}
+
+	var rangeParameter = "";
+
+	if (range != null) {
+		rangeParameter = "&radius=" + range;
+	}
+
+	var serverString = _getServerString();
+	client.get(serverString + "/api-v1/sphere-systems?systemName=" + system + "&coords=1" + rangeParameter, responseHandler).on("error", errorHandler);
+}
+
+function _getSystemCoordinates(system, callback) {
+	function responseHandler(data, response) {
+		if (data) {
+			if (!data.name) {
+				data = null;
+			}
+
+			callback(data);
+		} else {
+			callback(null);
+		}
+	}
+
+	function errorHandler(err) {
+		callback(null);
+	}
+
+	var serverString = _getServerString();
+	client.get(serverString + "/api-v1/system?systemName=" + system + "&coords=1", responseHandler).on("error", errorHandler);
+}
+
+function _submitDistance(targetSystem, referenceSystem, distance, commander, callback) {
+	function responseHandler(data, response) {
+		console.log(data);
+
+		if (data) {
+			if (data.length == 0) {
+				data = null;
+			}
+
+			callback(data);
+		} else {
+			callback(null);
+		}
+	}
+
+	function errorHandler(err) {
+		callback(null);
+	}
+
+	var submissionData = {
 		"data": {
 			"test": 0,
 			"commander": commander,
@@ -192,115 +234,336 @@ var _submitDistance = function(targetSystem, referenceSystem, distance, commande
 			"refs": [
 				{
 					"name": referenceSystem,
-					"dist": Number(distance)
+					"dist": distance
 				}
 			]
 		}
 	};
 
 	var jsonData = [];
-	jsonData["data"] = JSON.stringify(data);
+	jsonData["data"] = JSON.stringify(submissionData);
+	console.log(jsonData["data"]);
 
-	var serverString = getServerString();
-
-	client.post(serverString + "/api-v1/submit-distances", jsonData, function(data, response) {
-		console.log(data);
-		if (data) {
-			if (data.length == 0) {
-				data = null;
-			}
-		}
-
-		callback(data);
-	}).on('error', function(err) {
-		callback(null);
-	});
+	var serverString = _getServerString();
+	client.post(serverString + "/api-v1/submit-distances", jsonData, responseHandler).on("error", errorHandler);
 }
 
-var getSystemCoords = function(system, bot, message) {
-	_getSystemCoords(sanitizeString(system), function(coords) {
-		var output = "Sorry, " + system + " is not in EDSM";
+//exported functions
+function getCommanderCoordinates(commander, bot, message) {
+	function systemResponseHandler(data) {
+		if (data) {
+			output = _getPositionString(commander, data);
+
+			if (data.system) {
+				_getSystemCoordinates(_sanitizeString(data.system), coordinatesResponseHandler);
+			} else {
+				bot.sendMessage(message.channel, output);
+			}
+		} else {
+			bot.sendMessage(message.channel, output);
+		}
+	}
+
+	function coordinatesResponseHandler(coords) {
+		if (coords) {
+			output += " " + _getCoordString(coords);
+		}
+
+		bot.sendMessage(message.channel, output);
+	}
+
+	var output = commander + " cannot be found.";
+	_getCommanderSystem(_sanitizeString(commander), systemResponseHandler);
+}
+
+function getDistance(first, second, bot, message) {
+	function firstCoordsResponseHandler(coords) {
+		if (coords) {
+			if (coords.coords == undefined) {
+				var name = first;
+
+				if (coords.name) {
+					name = coords.name;
+				}
+
+				bot.sendMessage(message.channel, "Coordinates for " + name + " are unknown.");
+				return;
+			}
+
+			firstSystem = coords;
+			_getSystemOrCommanderCoordinates(_sanitizeString(second), secondCoordsResponseHandler);
+		} else {
+			bot.sendMessage(message.channel, "Sorry, " + first + " could not be located.");
+		}
+	}
+
+	function secondCoordsResponseHandler(coords) {
+		if (coords) {
+			if (coords.coords == undefined) {
+				var name = second;
+
+				if (coords.name) {
+					name = coords.name;
+				}
+
+				bot.sendMessage(message.channel, "Coordinates for " + name + " are unknown.");
+				return;
+			}
+
+			secondSystem = coords;
+			var distance = _calcDistance(firstSystem.coords, secondSystem.coords);
+			var firstName = first;
+
+			if (firstSystem.name) {
+				firstName = firstSystem.name;
+			}
+
+			var secondName = second;
+
+			if (secondSystem.name) {
+				secondName = secondSystem.name;
+			}
+
+			bot.sendMessage(message.channel, "The distance between " + firstName + " and " + secondName + " is " + Number(distance).toFixed(2) + " ly.");
+		} else {
+			bot.sendMessage(message.channel, "Sorry, " + second + " could not be located.");
+		}
+	}
+
+	var firstSystem = null;
+	var secondSystem = null;
+	_getSystemOrCommanderCoordinates(_sanitizeString(first), firstCoordsResponseHandler);
+}
+
+function getNearbySystems(name, range, bot, message) {
+	function coordinatesResponseHandler(coords) {
+		if (coords) {
+			systemName = coords.name;
+			systemCoords = coords.coords;
+			_getNearbySystems(_sanitizeString(systemName), range, nearbySystemsResponseHandler);
+		} else {
+			bot.sendMessage(message.channel, name + " not found.");
+		}
+	}
+
+	function nearbySystemsResponseHandler(data) {
+		if (data) {
+			var output = message.author + "\n";
+			var lines = 1;
+			var systems = 0;
+
+			for (var index=0; index<data.length; index++) {
+				if (data[index].name == systemName) {
+					continue;
+				}
+
+				var distance = _calcDistance(systemCoords, data[index].coords);
+				output += data[index].name + "\t(" + Number(distance).toFixed(2) + " ly)\n";
+				lines++;
+				systems++;
+
+				if (lines == 20) {
+					bot.sendMessage(message.channel, output);
+					output = message.author + "\n";
+					lines = 1;
+				}
+			}
+
+			if (lines > 1) {
+				bot.sendMessage(message.channel, output);
+			}
+
+			bot.sendMessage(message.channel, systems + " systems found near " + systemName);
+		} else {
+			bot.sendMessage(message.channel, "Something may be wrong.");
+		}
+	}
+
+	bot.sendMessage(message.channel, "This may take a while...");
+
+	var systemName = null;
+	var systemCoords = null;
+	_getSystemOrCommanderCoordinates(_sanitizeString(name), coordinatesResponseHandler);
+}
+
+function getRoute(first, second, range, bot, message) {
+	function firstCoordsResponseHandler(coords) {
+		if (coords) {
+			if (coords.coords == undefined) {
+				var name = first;
+
+				if (coords.name) {
+					name = coords.name;
+				}
+
+				bot.sendMessage(message.channel, "Coodinates for " + name + " are unknown.");
+			}
+
+			firstSystem = coords;
+			_getSystemOrCommanderCoordinates(_sanitizeString(second), secondCoordsResponseHandler);
+		} else {
+			bot.sendMessage(message.channel, "Sorry, " + first + " could not be located.");
+		}
+	}
+
+	function secondCoordsResponseHandler(coords) {
+		if (coords) {
+			if (coords.coords == undefined) {
+				var name = second;
+
+				if (coords.name) {
+					name = coords.name;
+				}
+
+				bot.sendMessage(message.channel, "Coordinates for " + name + " are unknown.");
+				return;
+			}
+
+			secondSystem = coords;
+			var distance = _calcDistance(firstSystem.coords, secondSystem.coords);
+			jumpNo = 0;
+			output += "#0\t" + firstSystem.name + "\t(Jump Distance: 0ly)\t(Distance from " + secondSystem.name + ": " + Number(distance).toFixed(2) + " ly)\n";
+			lines++;
+			currentSystem = firstSystem;
+			_getNearbySystems(_sanitizeString(currentSystem.name), range, nearbySystemsResponseHandler);
+		} else {
+			bot.sendMessage(message.channel, "Sorry, " + second + " could not be located.");
+		}
+	}
+
+	function nearbySystemsResponseHandler(data) {
+		if (data) {
+			var closestSystem = null;
+			var closestSystemDistance = null;
+
+			for (var index=0; index<data.length; index++) {
+				if (data[index].coords == undefined) {
+					continue;
+				}
+
+				var distance = _calcDistance(secondSystem.coords, data[index].coords);
+
+				if (closestSystemDistance == null || distance < closestSystemDistance) {
+					closestSystem = data[index];
+					closestSystemDistance = distance;
+				}
+			}
+
+			if (closestSystem == null || closestSystem.name == currentSystem.name) {
+				output += "\nYou have reached a dead end. This may be due to insufficent data or an insufficient jump range.";
+				bot.sendMessage(message.channel, output);
+			} else {
+				jumpNo++;
+				var jumpDistance = _calcDistance(currentSystem.coords, closestSystem.coords);
+				output += "#" + jumpNo + "\t" + closestSystem.name + "\t(Jump Distance: " + Number(jumpDistance).toFixed(2) + " ly)\t(Distance from " + secondSystem.name + ": " + Number(closestSystemDistance).toFixed(2) + " ly)\n";
+				lines++;
+
+				if (lines == 20) {
+					bot.sendMessage(message.channel, output);
+					output = message.author + "\n";
+					lines = 1;
+				}
+
+				if (closestSystem.name == secondSystem.name) {
+					output += "\nYou have arrived. Your destination is on your left.";
+					bot.sendMessage(message.channel, output);
+				} else {
+					currentSystem = closestSystem;
+					_getNearbySystems(_sanitizeString(currentSystem.name), range, nearbySystemsResponseHandler);
+				}
+			}
+		} else {
+			output += "\nSomething's wrong...";
+			bot.sendMessage(message.channel, output);
+		}
+	}
+
+	bot.sendMessage(message.channel, "This may take a while...");
+	var firstSystem = null;
+	var secondSystem = null;
+	var currentSystem = null;
+	var output = message.author + "\n";
+	var lines = 1;
+	var jumpNo = null;
+
+	_getSystemOrCommanderCoordinates(_sanitizeString(first), firstCoordsResponseHandler);
+}
+
+function getSystemCoordinates(system, bot, message) {
+	function responseHandler(coords) {
+		var output = "Sorry, " + system + " is not in EDSM.";
 
 		if (coords) {
 			output = "System: " + coords.name + " " + _getCoordString(coords);
 		}
 
 		bot.sendMessage(message.channel, output);
-	});
+	}
+
+	_getSystemCoordinates(_checkAliases(_sanitizeString(system)), responseHandler);
 }
 
-var getNearbySystems = function(name, range, bot, message) {
-	bot.sendMessage(message.channel, "This may take a while...");
+function listAliases(bot, message) {
+	var output = "Supported stellar aliases:";
 
-	_getSystemOrCmdrCoords(sanitizeString(name), function(coords) {
-		if (coords) {
-			var systemName = coords.name;
-			_getNearbySystems(sanitizeString(systemName), range, function(data) {
-				if (data) {
-					var output = message.author + "\n";
-					var lines = 1;
-
-					for (var index=0; index<data.length; index++) {
-						if (data[index].name == systemName) {
-							continue;
-						}
-
-						distance = _calcDistance(coords.coords, data[index].coords);
-						distance = Number(distance).toFixed(2);
-
-						output += data[index].name + "\t(" + distance + " ly)\n";
-						lines++;
-
-						if (lines == 20) {
-							bot.sendMessage(message.channel, output);
-							output = message.author + "\n";
-							lines = 1;
-						}
-					}
-
-					if (output == "") {
-						bot.sendMessage(message.channel, "No systems found.");
-					} else {
-						bot.sendMessage(message.channel, output);
-					}
-				}
-			});
-		} else {
-			bot.sendMessage(message.channel, name + " not found.");
+	for (var key in aliases) {
+		if (typeof aliases[key] != "function") {
+			output += "\n\t*" + key + " -> " + aliases[key];
 		}
-	});
+	}
+
+	bot.sendMessage(message.channel, output);
 }
 
-var submitDistance = function(targetSystem, referenceSystem, distance, commander, bot, message) {
-	_submitDistance(targetSystem, referenceSystem, distance, commander, function(data) {
+function locateCommander(commander, bot, message) {
+	function callback(data) {
+		bot.sendMessage(message.channel, _getPositionString(commander, data));
+	}
+
+	_getCommanderSystem(_sanitizeString(commander), callback);
+}
+
+function setUseBetaServer(useBeta) {
+	if (useBeta == 0) {
+		console.log("Using the Live Server");
+	} else {
+		console.log("Using the Beta Server");
+	}
+
+	useBetaServer = useBeta;
+}
+
+function checkAliasesNew(system, unsanitized) {
+	if (unsanitized==1) {
+		console.log("Unsanitized");
+	}
+}
+
+function submitDistance(targetSystem, referenceSystem, distance, commander, bot, message) {
+	function responseHandler(data) {
 		if (data) {
 			var output = message.author + "\n";
 
 			switch(data.basesystem.msgnum) {
-				case 108:
-					output += data.basesystem.msg + "\n";
-					output += "Current number of reference systems: " + data.basesystem.refnum + "\n";
-					break;
-				case 106:
-					output += "Coordinates not found.\n";
-					output += "Please supply more references for " +data.basesystem.name + ".\n";
+				case 102:
+					output += "Coordinates for " + data.basesystem.name + " are already known.\n";
+					output += _getCoordString(data.basesystem) + "\n";
 					break;
 				case 104:
 					output += "Coordinates for " + data.basesystem.name + " have been found.\n";
 					output += _getCoordString(data.basesystem) + "\n";
 					break;
-				case 102:
-					output += "Coordinates for " + data.basesystem.name + " are already known.\n";
-					output += _getCoordString(data.basesystem) + "\n";
+				case 108:
+					output += data.basesystem.msg + "\n";
+					output += "Current number of reference systems: " + data.basesystem.refnum + "\n";
 					break;
 				default:
 					output += data.basesystem.msg + "\n";
 					break;
 			}
-	
+
 			for (var index=0; index<data.distances.length; index++) {
 				output += data.distances[index].msg + "\n";
-
 				switch(data.distances[index].msgnum) {
 					case 200:
 						output += "\t" + data.distances[index].name + " -> " + data.basesystem.name + " = " + data.distances[index].dist + " ly\n";
@@ -314,197 +577,18 @@ var submitDistance = function(targetSystem, referenceSystem, distance, commander
 		} else {
 			bot.sendMessage(message.channel, "It appears as if there has been some sort of problem.");
 		}
-	});
-//
-/*	_getSystemOrCmdrCoords(name, function(coords) {
-		if (coords) {
-			var systemName = coords.name;
-			_getNearbySystems(systemName, range, function(data) {
-				if (data) {
-					var output = message.author + "\n";
-					var lines = 1;
-
-					for (var index=0; index<data.length; index++) {
-						if (data[index].name == systemName) {
-							continue;
-						}
-
-						distance = _calcDistance(coords.coords, data[index].coords);
-						distance = Number(distance).toFixed(2);
-
-						output += data[index].name + "\t(" + distance + " ly)\n";
-						lines++;
-
-						if (lines == 20) {
-							bot.sendMessage(message.channel, output);
-							output = message.author + "\n";
-							lines = 1;
-						}
-					}
-
-					if (output == "") {
-						bot.sendMessage(message.channel, "No systems found.");
-					} else {
-						bot.sendMessage(message.channel, output);
-					}
-				}
-			});
-		} else {
-			bot.sendMessage(message.channel, name + " not found.");
-		}
-	});*/
-//
-}
-
-var getRoute = function(first, second, range, bot, message) {
-	bot.sendMessage(message.channel, "This may take a while...");
-
-	_getSystemOrCmdrCoords(sanitizeString(first), function(firstSystemCoords) {
-		if (firstSystemCoords) {
-			var firstSystemName = firstSystemCoords.name;
-
-			_getSystemOrCmdrCoords(sanitizeString(second), function(secondSystemCoords) {
-				if (secondSystemCoords) {
-					var secondSystemName = secondSystemCoords.name;
-					distance = _calcDistance(firstSystemCoords.coords, secondSystemCoords.coords);
-					distance = Number(distance);
-
-					var output = message.author + "\n#0\t" + firstSystemName + "\t(Jump Distance: 0 ly)\t(Distance from " + secondSystemName + ": " + distance.toFixed(2) + " ly)\n";
-					var lines = 2;
-					var jumpNo = 0;
-
-					var routingCallback = function(data) {
-						if (data) {
-							var closestSystem = null;
-							var closestSystemDistance = null;
-							var closestSystemJump = null;
-
-							for (var index=0; index<data.length; index++) {
-								distance = _calcDistance(secondSystemCoords.coords, data[index].coords);
-								distance = Number(distance);
-
-								if (closestSystemDistance == null || distance < closestSystemDistance) {
-									jump = _calcDistance(currentSystem.coords, data[index].coords);
-									jump = Number(jump);
-
-									closestSystem = data[index];
-									closestSystemDistance = distance;
-									closestSystemJump = jump;
-								}
-							}
-
-							if (closestSystem == null || closestSystem.name == currentSystem.name) {
-								output += "\nYou have reached a dead end. This may be due to insufficient data or an insufficient jump range.";
-								bot.sendMessage(message.channel, output);
-							} else {
-								jumpNo++;
-								output += "#" + jumpNo + "\t" + closestSystem.name + "\t(Jump Distance: " + closestSystemJump.toFixed(2) + " ly)\t(Distance from " + secondSystemName + ": " + closestSystemDistance.toFixed(2) + " ly)\n";
-								lines++;
-
-								if (lines == 20) {
-									bot.sendMessage(message.channel, output);
-									output = message.author + "\n";
-									lines = 1;
-								}
-
-								if (closestSystem.name == secondSystemName) {
-									output += "\nYou have arrived. Your destination is on your left.";
-									bot.sendMessage(message.channel, output);
-								} else {
-									currentSystem = closestSystem;
-									_getNearbySystems(sanitizeString(currentSystem.name), range, routingCallback);
-								}
-							}
-						} else {
-							output += "\nSomething's wrong...";
-							bot.sendMessage(message.channel, output);
-						}
-					};
-
-					currentSystem = firstSystemCoords;
-					_getNearbySystems(sanitizeString(firstSystemName), range, routingCallback);
-				} else {
-					bot.sendMessage(message.channel, second + " not found.");
-				}
-			});
-		} else {
-			bot.sendMessage(message.channel, first + " not found.");
-		}
-	});
-}
-
-var _sq2 = function(a, b) {
-	var val = a - b;
-	return val * val;
-}
-
-var _calcDistance = function(a, b) {
-	return Math.sqrt(_sq2(a.x, b.x) + _sq2(a.y, b.y) + _sq2(a.z, b.z));
-}
-
-var getCmdrCoords = function(commander, bot, message) {
-	_getSystem(commander, function(data) {
-		var output = _getPositionString(commander, data);
-		if (data) {
-			if (data.system) {
-				_getSystemCoords(data.system, function(coords) {
-					if (coords) {
-						output += " " + _getCoordString(coords);
-					}
-					bot.sendMessage(message.channel, output);
-				});
-			}
-		} else {
-			bot.sendMessage(message.channel, output);
-		}
-	});
-}
-
-var getDistance = function(first, second, bot, message) {
-	// Each query item could be a system or a commander...
-	_getSystemOrCmdrCoords(sanitizeString(first), function(firstCoords) {
-		if (firstCoords) {
-			_getSystemOrCmdrCoords(sanitizeString(second), function(secondCoords) {
-				if (secondCoords) {
-					if (firstCoords.coords && secondCoords.coords) {
-						var dist = _calcDistance(firstCoords.coords, secondCoords.coords);
-						bot.sendMessage(message.channel, "Distance between " + first + " and " + second + " is " + dist.toFixed(2) + " ly");
-					} else {
-						var output = "Sorry, could not calculate the distance from " + first + " to " + second;
-						if (firstCoords.coords == undefined) {
-							output += "\n" + first + " has shared their location, but we have no coordinates for it";
-						}
-						if (secondCoords.coords == undefined) {
-							output += "\n" + second + " has shared their location, but we have no coordinates for it";
-						}
-						bot.sendMessage(message.channel, output);
-					}
-				} else {
-					bot.sendMessage(message.channel, "Sorry, " + second + " could not be located");
-				}
-			});
-		} else {
-			bot.sendMessage(message.channel, "Sorry, " + first + " could not be located");
-		}
-	});
-}
-
-var setUseBetaServer = function(useBeta) {
-	if (useBeta == 0) {
-		console.log("Using the Live Server");
-	} else {
-		console.log("Using the Beta Server");
 	}
 
-	useBetaServer = useBeta;
+	_submitDistance(_checkAliases(targetSystem, 1), _checkAliases(referenceSystem, 1), distance, commander + " Test", responseHandler);
 }
 
-exports.getPosition = getPosition;
-exports.getSystemCoords = getSystemCoords;
-exports.getCmdrCoords = getCmdrCoords;
+//exports
+exports.getCommanderCoordinates = getCommanderCoordinates;
 exports.getDistance = getDistance;
 exports.getNearbySystems = getNearbySystems;
 exports.getRoute = getRoute;
-exports.submitDistance = submitDistance;
+exports.getSystemCoordinates = getSystemCoordinates;
+exports.listAliases = listAliases;
+exports.locateCommander = locateCommander;
 exports.setUseBetaServer = setUseBetaServer;
-exports.aliases = aliases
+exports.submitDistance = submitDistance;

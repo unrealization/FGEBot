@@ -213,17 +213,17 @@ var commands = {
 	"locate": {
 		usage: "<name>",
 		help: 'Gets the location of a commander',
-		process: function(args,bot,msg) { edsm.getPosition(compileArgs(args), bot, msg); }
+		process: function(args,bot,msg) { edsm.locateCommander(compileArgs(args), bot, msg); }
 	},
 	"syscoords": {
 		usage: "<system>",
 		help: 'Gets the galactic coordinates of a system',
-		process: function(args,bot,msg) { edsm.getSystemCoords(compileArgs(args), bot, msg); }
+		process: function(args,bot,msg) { edsm.getSystemCoordinates(compileArgs(args), bot, msg); }
 	},
 	"cmdrcoords": {
 		usage: "<name>",
 		help: "Gets the location of a commander, including system coordinates, if they are available",
-		process: function(args,bot,msg) { edsm.getCmdrCoords(compileArgs(args), bot, msg); }
+		process: function(args,bot,msg) { edsm.getCommanderCoordinates(compileArgs(args), bot, msg); }
 	},
 	"distance": {
 		usage: "<first> " + config.NAME_SEPARATOR + " <second>",
@@ -244,18 +244,7 @@ var commands = {
 	},
 	"aliases": {
 		help: "Returns the list of supported alias systems",
-		process: function(args,bot,msg) {
-			var key;
-			var output = "Supported stellar aliases:";
-
-			for (key in edsm.aliases) {
-				if (typeof edsm.aliases[key] != 'function') {
-					output += "\n    *" + key + " -> " + edsm.aliases[key];
-				}
-			}
-
-			bot.sendMessage(msg.channel, output);
-		}
+		process: function(args,bot,msg) { edsm.listAliases(bot, msg); }
 	},
 	"route": {
 		usage: "<first> " + config.NAME_SEPARATOR + " <second> [r:<range>]",
