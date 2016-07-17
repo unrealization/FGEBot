@@ -83,98 +83,6 @@ var commands = {
 		help: "Display version information for this bot.",
 		process: function(args, bot, message) { bot.sendMessage(message.channel, VERSION); }
 	},
-	"servers": {
-		help: "lists servers bot is connected to",
-		process: function(args, bot, msg) { bot.sendMessage(msg.channel,bot.servers); }
-	},
-	"channels": {
-		help: "lists channels bot is connected to",
-		process: function(args, bot, msg) { bot.sendMessage(msg.channel,bot.channels); }
-	},
-	"myid": {
-		help: "returns the user id of the sender",
-		process: function(args, bot, msg) { bot.sendMessage(msg.channel,msg.author.id); }
-	},
-	"say": {
-		usage: "<message>",
-		help: "bot says message",
-		process: function(args, bot,msg) { bot.sendMessage(msg.channel,compileArgs(args));}
-	},
-	"announce": {
-		usage: "<message>",
-		help: "bot says message with text to speech",
-		process: function(args, bot,msg) { bot.sendMessage(msg.channel,compileArgs(args),{tts:true});}
-	},
-	"userid": {
-		usage: "<user to get id of>",
-		help: "Returns the unique id of a user. This is useful for permissions.",
-		process: function(args,bot,msg) {
-			var suffix = compileArgs(args);
-			console.log("userid [" + suffix + "]");
-
-			if(suffix) {
-				var server = msg.channel.server;
-
-				if (server) {
-					var users = server.members.getAll("username",suffix);
-
-					if(users.length == 1) {
-						bot.sendMessage(msg.channel, "The id of " + users[0] + " is " + users[0].id)
-					} else if(users.length > 1) {
-						var response = "multiple users found:";
-
-						for(var i=0;i<users.length;i++) {
-							var user = users[i];
-							response += "\nThe id of " + user + " is " + user.id;
-						}
-
-						bot.sendMessage(msg.channel,response);
-					} else {
-						bot.sendMessage(msg.channel,"No user " + suffix + " found!");
-					}
-				} else {
-					bot.sendMessage(msg.channel, "userid can only be run from a server channel, not a private message.");
-				}
-			} else {
-				bot.sendMessage(msg.channel, "The id of " + msg.author + " is " + msg.author.id);
-			}
-		}
-	},
-	"topic": {
-		usage: "[topic]",
-		help: 'Sets the topic for the channel. No topic removes the topic.',
-		process: function(args,bot,msg) {
-			bot.setChannelTopic(msg.channel,compileArgs(args), function(error) {
-				console.log("Channel topic result: " + error);
-			});
-		}
-	},
-	"msg": {
-		usage: "<user> <message to leave user>",
-		help: "leaves a message for a user the next time they come online",
-		process: function(args,bot,msg) {
-			var user = args.shift();
-			var message = args.join(' ');
-
-			if(user.startsWith('<@')) {
-				user = user.substr(2,user.length-3);
-			}
-
-			var target = msg.channel.server.members.get("id",user);
-
-			if(!target) {
-				target = msg.channel.server.members.get("username",user);
-			}
-
-			messagebox[target.id] = {
-				channel: msg.channel.id,
-				content: target + ", " + msg.author + " said: " + message
-			};
-
-			updateMessagebox();
-			bot.sendMessage(msg.channel,"message saved.")
-		}
-	},
 	"uptime": {
     	usage: "",
 		help: "returns the amount of time since the bot started",
@@ -208,6 +116,134 @@ var commands = {
 			}
 
 			bot.sendMessage(msg.channel,"Uptime: " + timestr);
+		}
+	},
+	"msg": {
+		usage: "<user> <message to leave user>",
+		help: "leaves a message for a user the next time they come online",
+		process: function(args,bot,msg) {
+			var user = args.shift();
+			var message = args.join(' ');
+
+			if(user.startsWith('<@')) {
+				user = user.substr(2,user.length-3);
+			}
+
+			var target = msg.channel.server.members.get("id",user);
+
+			if(!target) {
+				target = msg.channel.server.members.get("username",user);
+			}
+
+			messagebox[target.id] = {
+				channel: msg.channel.id,
+				content: target + ", " + msg.author + " said: " + message
+			};
+
+			updateMessagebox();
+			bot.sendMessage(msg.channel,"message saved.")
+		}
+	},
+	"join": {
+		usage: "<role>",
+		help: "Join a user role",
+		process: function(args, bot, msg) {
+			function roleHandler(error) {
+				if (error) {
+					bot.sendMessage(msg.channel, "I may have not permission to assign this role.");
+				} else {
+					bot.sendMessage(msg.channel, "Done.");
+				}
+			}
+
+			if (config.MANAGEABLE_ROLES.length == 0) {
+				bot.sendMessage(msg.channel, "I am not allowed to manage any roles.");
+				return;
+			}
+
+			var roleName = compileArgs(args);
+
+			if (config.MANAGEABLE_ROLES.indexOf(roleName.toLowerCase()) == -1) {
+				bot.sendMessage(msg.channel, "I am not allowed to manage this role.");
+				return;
+			}
+
+			var serverRoles = msg.server.roles;
+			var role = null;
+
+			for (var index=0; index<serverRoles.length; index++) {
+				if (serverRoles[index].name.toLowerCase() == roleName.toLowerCase()) {
+					role = serverRoles[index];
+					break;
+				}
+			}
+
+			if (!role) {
+				bot.sendMessage(msg.channel, "The role " + roleName + " is unknown on this server.");
+				return;
+			}
+
+			if (bot.memberHasRole(msg.author, role)) {
+				bot.sendMessage(msg.channel, "You already have the role " + roleName + ".");
+				return;
+			}
+
+			try {
+				bot.addMemberToRole(msg.author, role, roleHandler);
+			} catch(e) {
+				console.log(e);
+			}
+		}
+	},
+	"leave": {
+		usage: "<role>",
+		help: "Leave a user role",
+		process: function(args, bot, msg) {
+			function roleHandler(error) {
+				if (error) {
+					bot.sendMessage(msg.channel, "I may have not permission to assign this role.");
+				} else {
+					bot.sendMessage(msg.channel, "Done.");
+				}
+			}
+
+			if (config.MANAGEABLE_ROLES.length == 0) {
+				bot.sendMessage(msg.channel, "I am not allowed to manage any roles.");
+				return;
+			}
+
+			var roleName = compileArgs(args);
+
+			if (config.MANAGEABLE_ROLES.indexOf(roleName.toLowerCase()) == -1) {
+				bot.sendMessage(msg.channel, "I am not allowed to manage this role.");
+				return;
+			}
+
+			var serverRoles = msg.server.roles;
+			var role = null;
+
+			for (var index=0; index<serverRoles.length; index++) {
+				if (serverRoles[index].name.toLowerCase() == roleName.toLowerCase()) {
+					role = serverRoles[index];
+					break;
+				}
+			}
+
+			if (!role) {
+				bot.sendMessage(msg.channel, "The role " + roleName + " is unknown on this server.");
+				return;
+			}
+
+			if (!bot.memberHasRole(msg.author, role)) {
+				bot.sendMessage(msg.channel, "You do not have the role " + roleName + ".");
+				return;
+			}
+
+			try {
+				bot.removeMemberFromRole(msg.author, role, roleHandler);
+			} catch(e) {
+				console.log(e);
+			}
 		}
 	},
 	"locate": {
