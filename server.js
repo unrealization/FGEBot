@@ -437,68 +437,65 @@ var commands = {
 	},
 };
 
+function handleMessage(message) {
+	if (message.author == FGEBot.user) {
+		return;
+	}
 
-FGEBot.on("message", function(message){
-	if (message.author !== FGEBot.user) {
-		var processed = 0;
-		console.log("[" + FGEBot.user + "] Got message from " + message.author + ": " + message);
+	if (config.IGNORE_CHANNELS.length > 0) {
+		var index = config.IGNORE_CHANNELS.indexOf(message.channel.name.toLowerCase());
 
-		if (config.RESPOND_TO_MENTIONS) {
-			var mentionString = "<@" + FGEBot.user.id + ">";
-			var mentionStringRenamed = "<@!" + FGEBot.user.id + ">";
+		if (index > -1) {
+			return;
+		}
+	}
 
-			if (message.content.startsWith(mentionString) || message.content.startsWith(mentionStringRenamed)) {
-				processed = 1;
+	//console.log("[" + FGEBot.user + "] Received message from " + message.author + ": " + message);
 
-				if (message.content.startsWith(mentionString)) {
-					messageContent = message.content.substr(mentionString.length).trim();
-				} else if (message.content.startsWith(mentionStringRenamed)) {
-					messageContent = message.content.substr(mentionStringRenamed.length).trim();
-				} else {
-					messageContent = message.content;
-				}
+	var processed = 0;
+	var messageContent = "";
 
-				var args = messageContent.split(" ");
-				var cmd = commands[args[0]];
+	if (config.RESPOND_TO_MENTIONS) {
+		var mentionString = "<@" + FGEBot.user.id + ">";
+		var mentionStringRenamed = "<@!" + FGEBot.user.id + ">";
 
-				if (cmd) {
-					try {
-						cmd.process(args, FGEBot, message);
-					} catch(e) {
-						if (config.debug) {
-							FGEBot.sendMessage(message.channel, "command " + message.content + " failed :(\n" + e.stack);
-						}
-					}
-				} else {
-					FGEBot.sendMessage(message.channel, message.author + ", what's up?");
+		if (message.content.startsWith(mentionString) || message.content.startsWith(mentionStringRenamed)) {
+			processed = 1;
+
+			if (message.content.startsWith(mentionString)) {
+				messageContent = message.content.substr(mentionString.length).trim();
+			} else if (message.content.startsWith(mentionStringRenamed)) {
+				messageContent = message.content.substr(mentionStringRenamed.length).trim();
+			} else {
+				messageContent = message.content;
+			}
+		}
+	}
+
+	if (!processed && config.RESPOND_TO_COMMANDS && config.COMMAND_PREFIX && message.content.startsWith(config.COMMAND_PREFIX)) {
+		processed = 1;
+		messageContent = message.content.substr(config.COMMAND_PREFIX.length);
+	}
+
+	if (processed == 1) {
+		var args = messageContent.split(" ");
+		var cmd = commands[args[0]];
+
+		if (cmd) {
+			console.log("Processing " + args[0]);
+
+			try {
+				cmd.process(args, FGEBot, message);
+			} catch(e) {
+				if (config.debug) {
+					FGEBot.sendMessage(message.channel, "Command " + message.content + " failed.\n" + e.stack);
 				}
 			}
 		}
+	}
+}
 
-		if (!processed && config.RESPOND_TO_COMMANDS && config.COMMAND_PREFIX && message.content.startsWith(config.COMMAND_PREFIX)) {
-			messageContent = message.content.substr(config.COMMAND_PREFIX.length);
-			// First word is a command
-			var args = messageContent.split(" ");
-			var cmd = commands[args[0]];
-
-			if (cmd) {
-				try{
-					cmd.process(args, FGEBot, message);
-				} catch(e){
-					if (config.debug) {
-						FGEBot.sendMessage(message.channel, "command " + message.content + " failed :(\n" + e.stack);
-					}
-				}
-			} else {
-				if (config.respondToInvalid) {
-					FGEBot.sendMessage(message.channel, "Invalid command " + message.content);
-				}
-			}
-		} else if (!processed && message.author != FGEBot.user && message.isMentioned(FGEBot.user)) {
-			FGEBot.sendMessage(message.channel,message.author + ", you called?");
-        	}
-	} 
-});
+FGEBot.on("message", handleMessage);
 
 //Log user status changes
 FGEBot.on("presence", function(user,status,gameId) {
