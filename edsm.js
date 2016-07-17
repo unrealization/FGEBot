@@ -342,14 +342,13 @@ function getNearbySystems(name, range, bot, message) {
 			systemCoords = coords.coords;
 			_getNearbySystems(_sanitizeString(systemName), range, nearbySystemsResponseHandler);
 		} else {
-			bot.sendMessage(message.channel, name + " not found.");
+			bot.sendMessage(message.author, name + " not found.");
 		}
 	}
 
 	function nearbySystemsResponseHandler(data) {
 		if (data) {
-			var output = message.author + "\n";
-			var lines = 1;
+			var output = "";
 			var systems = 0;
 
 			for (var index=0; index<data.length; index++) {
@@ -359,27 +358,21 @@ function getNearbySystems(name, range, bot, message) {
 
 				var distance = _calcDistance(systemCoords, data[index].coords);
 				output += data[index].name + "\t(" + Number(distance).toFixed(2) + " ly)\n";
-				lines++;
 				systems++;
-
-				if (lines == 20) {
-					bot.sendMessage(message.channel, output);
-					output = message.author + "\n";
-					lines = 1;
-				}
 			}
 
-			if (lines > 1) {
-				bot.sendMessage(message.channel, output);
+			if (systems == 0) {
+				bot.sendMessage(message.author, "No systems can be found near " + systemName);
+			} else {
+				output = systems + " systems found near " + systemName + "\n\n" + output;
+				bot.sendMessage(message.author, output);
 			}
-
-			bot.sendMessage(message.channel, systems + " systems found near " + systemName);
 		} else {
-			bot.sendMessage(message.channel, "Something may be wrong.");
+			bot.sendMessage(message.author, "Something went wrong.");
 		}
 	}
 
-	bot.sendMessage(message.channel, "This may take a while...");
+	bot.sendMessage(message.channel, "This may take a while... Gonna send you a message...");
 
 	var systemName = null;
 	var systemCoords = null;
@@ -396,13 +389,14 @@ function getRoute(first, second, range, bot, message) {
 					name = coords.name;
 				}
 
-				bot.sendMessage(message.channel, "Coodinates for " + name + " are unknown.");
+				bot.sendMessage(message.author, "Coodinates for " + name + " are unknown.");
+				return;
 			}
 
 			firstSystem = coords;
 			_getSystemOrCommanderCoordinates(_sanitizeString(second), secondCoordsResponseHandler);
 		} else {
-			bot.sendMessage(message.channel, "Sorry, " + first + " could not be located.");
+			bot.sendMessage(message.author, "Sorry, " + first + " could not be located.");
 		}
 	}
 
@@ -415,7 +409,7 @@ function getRoute(first, second, range, bot, message) {
 					name = coords.name;
 				}
 
-				bot.sendMessage(message.channel, "Coordinates for " + name + " are unknown.");
+				bot.sendMessage(message.author, "Coordinates for " + name + " are unknown.");
 				return;
 			}
 
@@ -423,11 +417,10 @@ function getRoute(first, second, range, bot, message) {
 			var distance = _calcDistance(firstSystem.coords, secondSystem.coords);
 			jumpNo = 0;
 			output += "#0\t" + firstSystem.name + "\t(Jump Distance: 0ly)\t(Distance from " + secondSystem.name + ": " + Number(distance).toFixed(2) + " ly)\n";
-			lines++;
 			currentSystem = firstSystem;
 			_getNearbySystems(_sanitizeString(currentSystem.name), range, nearbySystemsResponseHandler);
 		} else {
-			bot.sendMessage(message.channel, "Sorry, " + second + " could not be located.");
+			bot.sendMessage(message.author, "Sorry, " + second + " could not be located.");
 		}
 	}
 
@@ -451,22 +444,15 @@ function getRoute(first, second, range, bot, message) {
 
 			if (closestSystem == null || closestSystem.name == currentSystem.name) {
 				output += "\nYou have reached a dead end. This may be due to insufficent data or an insufficient jump range.";
-				bot.sendMessage(message.channel, output);
+				bot.sendMessage(message.author, output);
 			} else {
 				jumpNo++;
 				var jumpDistance = _calcDistance(currentSystem.coords, closestSystem.coords);
 				output += "#" + jumpNo + "\t" + closestSystem.name + "\t(Jump Distance: " + Number(jumpDistance).toFixed(2) + " ly)\t(Distance from " + secondSystem.name + ": " + Number(closestSystemDistance).toFixed(2) + " ly)\n";
-				lines++;
-
-				if (lines == 20) {
-					bot.sendMessage(message.channel, output);
-					output = message.author + "\n";
-					lines = 1;
-				}
 
 				if (closestSystem.name == secondSystem.name) {
 					output += "\nYou have arrived. Your destination is on your left.";
-					bot.sendMessage(message.channel, output);
+					bot.sendMessage(message.author, output);
 				} else {
 					currentSystem = closestSystem;
 					_getNearbySystems(_sanitizeString(currentSystem.name), range, nearbySystemsResponseHandler);
@@ -474,16 +460,15 @@ function getRoute(first, second, range, bot, message) {
 			}
 		} else {
 			output += "\nSomething's wrong...";
-			bot.sendMessage(message.channel, output);
+			bot.sendMessage(message.author, output);
 		}
 	}
 
-	bot.sendMessage(message.channel, "This may take a while...");
+	bot.sendMessage(message.channel, "This may take a while... Gonna send you a message...");
 	var firstSystem = null;
 	var secondSystem = null;
 	var currentSystem = null;
-	var output = message.author + "\n";
-	var lines = 1;
+	var output = "";
 	var jumpNo = null;
 
 	_getSystemOrCommanderCoordinates(_sanitizeString(first), firstCoordsResponseHandler);
@@ -531,12 +516,6 @@ function setUseBetaServer(useBeta) {
 	}
 
 	useBetaServer = useBeta;
-}
-
-function checkAliasesNew(system, unsanitized) {
-	if (unsanitized==1) {
-		console.log("Unsanitized");
-	}
 }
 
 function submitDistance(targetSystem, referenceSystem, distance, commander, bot, message) {

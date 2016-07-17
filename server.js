@@ -372,7 +372,7 @@ var commands = {
 	},
 	"trilaterate": {
 		usage: "<system>",
-		help: "Ask the registered EDSM Users for help to trilaterate a system.",
+		help: "Ask for help to trilaterate a system.",
 		process: function(args, bot, msg) {
 			var system = compileArgs(args);
 			var usernames = [];
@@ -468,7 +468,9 @@ var commands = {
 			}
 
 			// console.log(output);
-			bot.sendMessage(msg.channel, output);
+			//bot.sendMessage(msg.channel, output);
+			bot.sendMessage(msg.channel, "Help sent as private message.");
+			bot.sendMessage(msg.author, output);
 		}
 	},
 };
@@ -478,15 +480,17 @@ function handleMessage(message) {
 		return;
 	}
 
-	if (config.IGNORE_CHANNELS.length > 0) {
+	if (!config.RESPOND_TO_PRIVATEMESSAGES && message.channel.isPrivate) {
+		return;
+	}
+
+	if (message.channel.name && config.IGNORE_CHANNELS.length > 0) {
 		var index = config.IGNORE_CHANNELS.indexOf(message.channel.name.toLowerCase());
 
 		if (index > -1) {
 			return;
 		}
 	}
-
-	//console.log("[" + FGEBot.user + "] Received message from " + message.author + ": " + message);
 
 	var processed = 0;
 	var messageContent = "";
@@ -518,7 +522,13 @@ function handleMessage(message) {
 		var cmd = commands[args[0]];
 
 		if (cmd) {
-			console.log("Processing " + args[0]);
+			var channelInfo = "";
+			if (message.channel.isPrivate) {
+				channelInfo = "(Private Message)";
+			} else {
+				channelInfo = "(Server: " + message.server.name + ", Channel: " + message.channel.name + ")";
+			}
+			console.log("Processing " + args[0] + "() for " + message.author.name + " " + channelInfo);
 
 			try {
 				cmd.process(args, FGEBot, message);
