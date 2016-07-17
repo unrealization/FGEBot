@@ -495,29 +495,23 @@ function handleMessage(message) {
 	}
 }
 
-FGEBot.on("message", handleMessage);
-
-//Log user status changes
-FGEBot.on("presence", function(user,status,gameId) {
-	//if(status === "online"){
-	//console.log("presence update");
-	// console.log(user+" went "+status);
-	//}
+function handleUserStatusChange(user, status, gameId) {
 	try {
-		if(status != 'offline'){
-			if(messagebox.hasOwnProperty(user.id)){
-				console.log("found message for " + user.id);
+		if (status != "offline") {
+			if (messagebox.hasOwnProperty(user.id)) {
+				console.log("Found a message for " + user.id);
 				var message = messagebox[user.id];
-				var channel = FGEBot.channels.get("id",message.channel);
+				var channel = FGEBot.channels.get("id", message.channel);
 				delete messagebox[user.id];
 				updateMessagebox();
-				FGEBot.sendMessage(channel,message.content);
+				FGEBot.sendMessage(channel, message.content);
 			}
 		}
-	} catch(e) {}
-});
+	} catch(e) {
+	}
+}
 
-FGEBot.login(config.LOGIN, config.PASSWORD, function(error, token) {
+function handleLogin(error, token) {
 	if (error) {
 		console.log("Error logging in: " + error);
 	}
@@ -525,7 +519,11 @@ FGEBot.login(config.LOGIN, config.PASSWORD, function(error, token) {
 	if (token) {
 		console.log(VERSION + " logged in with token " + token);
 	}
-});
+}
+
+FGEBot.on("message", handleMessage);
+FGEBot.on("presense", handleUserStatusChange);
+FGEBot.login(config.LOGIN, config.PASSWORD, handleLogin);
 
 if (config.USE_TRELLO) {
 	console.log("Activating trello integration");
