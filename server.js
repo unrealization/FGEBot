@@ -251,6 +251,14 @@ var commands = {
 	"ratsignal": {
 		help: "Send an emergency call to the Fuel Rats",
 		process: function(args, bot, msg) {
+			function callback(error, message) {
+				var edsmUser = getEdsmUser(msg.author);
+
+				if (edsmUser) {
+					edsm.getCommanderCoordinates(edsmUser, bot, message);
+				}
+			}
+
 			if (!config.RATSIGNAL_CONTACT_ROLES || config.RATSIGNAL_CONTACT_ROLES.length == 0) {
 				bot.sendMessage(msg.channel, "Sadly there is nobody here to help you.");
 				return;
@@ -276,13 +284,28 @@ var commands = {
 			var output = contactRoles.join(", ") + " RAT SIGNAL\n";
 			output += msg.author + " has run out of fuel and is in need of assistance!";
 
-			bot.sendMessage(msg.channel, output);
+			var channel = msg.channel;
 
-			var edsmUser = getEdsmUser(msg.author);
+			if (config.RATSIGNAL_EMERGENCY_CHANNEL) {
+				var serverChannels = msg.server.channels;
 
-			if (edsmUser) {
-				edsm.getCommanderCoordinates(edsmUser, bot, msg);
+				for (var index=0; index<serverChannels.length; index++) {
+					if (serverChannels[index].name == config.RATSIGNAL_EMERGENCY_CHANNEL) {
+						channel = serverChannels[index];
+					}
+				}
 			}
+
+			bot.sendMessage(channel, output, {}, callback);
+
+			output = msg.author + ", a rat signal has been sent.\n";
+			output += "Stay calm and refer to the Emergency Fuel Procedures detailled here: http://imgur.com/gallery/Vl2EQ/\n";
+
+			if (msg.channel.name != channel.name) {
+				output += "Move to " + channel + " and wait for your rescue.";
+			}
+
+			bot.sendMessage(msg.channel, output);
 		}
 	},
 	"aliases": {
