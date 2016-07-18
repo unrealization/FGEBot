@@ -510,9 +510,9 @@ function locateCommander(commander, bot, message) {
 
 function setUseBetaServer(useBeta) {
 	if (useBeta == 0) {
-		console.log("Using the Live Server");
+		console.log("EDSM: Using the Live Server");
 	} else {
-		console.log("Using the Beta Server");
+		console.log("EDSM: Using the Beta Server");
 	}
 
 	useBetaServer = useBeta;

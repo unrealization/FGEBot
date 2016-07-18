@@ -1,6 +1,7 @@
 var Discord = require("discord.js");
 var config = require('./config.js');
 var edsm = require('./edsm.js');
+var edmaterializer = require("./edmaterializer.js");
 
 const VERSION = "FGEBot Version 0.3.2-JTJ9";
 
@@ -19,6 +20,7 @@ var enumerate = function(obj) {
 }
 
 edsm.setUseBetaServer(config.EDSM_USE_BETASERVER);
+edmaterializer.setUseBetaServer(config.EDMATERIALIZER_USE_BETASERVER);
 
 var messagebox;
 
@@ -480,6 +482,46 @@ var commands = {
 			var referenceSystem = systems[1].trim();
 			var edsmUser = getEdsmUser(msg.author);
 			edsm.submitDistance(targetSystem, referenceSystem, distance, edsmUser, bot, msg);
+		}
+	},
+	"getStars": {
+		usage: "<system>",
+		help: "List the stars of a given system",
+		process: function(args, bot, msg) {
+			var system = compileArgs(args);
+			edmaterializer.getStars(system, bot, msg);
+		}
+	},
+	"getWorlds": {
+		usage: "<system>",
+		help: "List the worlds of a given system",
+		process: function(args, bot, msg) {
+			var system = compileArgs(args);
+			edmaterializer.getWorlds(system, bot, msg);
+		}
+	},
+	"showStar": {
+		usage: "<starId>",
+		help: "Show information on the given star",
+		process: function(args, bot, msg) {
+			var starId = compileArgs(args);
+			edmaterializer.showStarInfo(starId, bot, msg);
+		}
+	},
+	"showWorld": {
+		usage: "<worldId>",
+		help: "Show the information available on the given world",
+		process: function(args, bot, msg) {
+			var worldId = compileArgs(args);
+			edmaterializer.showWorldInfo(worldId, bot, msg);
+		}
+	},
+	"showSurvey": {
+		usage: "<surveyId>",
+		help: "Show information on the specified survey",
+		process: function(args, bot, msg) {
+			var surveyId = compileArgs(args);
+			edmaterializer.showSurveyInfo(surveyId, bot, msg);
 		}
 	},
 	"help": {
