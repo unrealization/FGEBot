@@ -4,7 +4,11 @@ var edsm = require('./edsm.js');
 
 const VERSION = "FGEBot Version 0.3.2-JTJ8";
 
-var FGEBot = new Discord.Client();
+var options = {
+	autoReconnect: 1
+};
+
+var FGEBot = new Discord.Client(options);
 
 var startTime = Date.now();
 
@@ -567,8 +571,13 @@ function handleLogin(error, token) {
 	}
 }
 
+function handleDisconnect() {
+	console.log("Disconnected.");
+}
+
 FGEBot.on("message", handleMessage);
 FGEBot.on("presense", handleUserStatusChange);
+FGEBot.on("disconnected", handleDisconnect);
 FGEBot.login(config.LOGIN, config.PASSWORD, handleLogin);
 
 if (config.USE_TRELLO) {
