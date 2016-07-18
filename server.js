@@ -54,7 +54,7 @@ function getEdsmUser(user) {
 }
 
 function allowSubmission(user, message) {
-	if (config.EDSM_SUBMIT_ROLES == 0) {
+	if (!config.EDSM_SUBMIT_ROLES || config.EDSM_SUBMIT_ROLES.length == 0) {
 		return 1;
 	}
 
@@ -246,6 +246,47 @@ var commands = {
 			}
 		}
 	},
+	"ratsignal": {
+		help: "Send an emergency call to the Fuel Rats",
+		process: function(args, bot, msg) {
+			if (!config.RATSIGNAL_CONTACT_ROLES || config.RATSIGNAL_CONTACT_ROLES.length == 0) {
+				bot.sendMessage(msg.channel, "Sadly there is nobody here to help you.");
+				return;
+			}
+
+			var serverRoles = msg.server.roles;
+			var role = null;
+			var contactRoles = [];
+
+			for (var index=0; index<serverRoles.length; index++) {
+				if (config.RATSIGNAL_CONTACT_ROLES.indexOf(serverRoles[index].name.toLowerCase()) == -1) {
+					continue;
+				}
+
+				contactRoles.push(serverRoles[index]);
+			}
+
+			if (contactRoles.length == 0) {
+				bot.sendMessage(msg.channel, "Sadly there is nobody here to help you.");
+				return;
+			}
+
+			var output = contactRoles.join(", ") + " RAT SIGNAL\n";
+			output += msg.author + " has run out of fuel and is in need of assistance!";
+
+			bot.sendMessage(msg.channel, output);
+
+			var edsmUser = getEdsmUser(msg.author);
+
+			if (edsmUser) {
+				edsm.getCommanderCoordinates(edsmUser, bot, msg);
+			}
+		}
+	},
+	"aliases": {
+		help: "Returns the list of supported alias systems",
+		process: function(args,bot,msg) { edsm.listAliases(bot, msg); }
+	},
 	"locate": {
 		usage: "<name>",
 		help: 'Gets the location of a commander',
@@ -277,10 +318,6 @@ var commands = {
 
 			edsm.getDistance(first, second, bot, msg);
 		}		
-	},
-	"aliases": {
-		help: "Returns the list of supported alias systems",
-		process: function(args,bot,msg) { edsm.listAliases(bot, msg); }
 	},
 	"route": {
 		usage: "<first> " + config.NAME_SEPARATOR + " <second> [r:<range>]",
