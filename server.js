@@ -150,6 +150,34 @@ var commands = {
 			bot.sendMessage(msg.channel,"message saved.")
 		}
 	},
+	"roles": {
+		help: "Show the public roles managed by the bot.",
+		process: function(args, bot, msg) {
+			if (!config.MANAGEABLE_ROLES || config.MANAGEABLE_ROLES.length == 0) {
+				bot.sendMessage(msg.channel, "I am not allowed to manage any roles.");
+				return;
+			}
+
+			var serverRoles = msg.server.roles;
+			var publicRoles = [];
+
+			for (var index=0; index<serverRoles.length; index++) {
+				if (config.MANAGEABLE_ROLES.indexOf(serverRoles[index].name.toLowerCase()) > -1) {
+					publicRoles.push(serverRoles[index].name);
+				}
+			}
+
+			if (publicRoles.length == 0) {
+				bot.sendMessage(msg.channel, "I am not allowed to manage any roles.");
+				return;
+			}
+
+			var output = "The following roles can be managed by the bot using the " + config.COMMAND_PREFIX + "join and " + config.COMMAND_PREFIX + "leave commands:\n";
+			output += "\t" + publicRoles.join("\n\t");
+
+			bot.sendMessage(msg.channel, output);
+		}
+	},
 	"join": {
 		usage: "<role>",
 		help: "Join a user role",
@@ -162,7 +190,7 @@ var commands = {
 				}
 			}
 
-			if (config.MANAGEABLE_ROLES.length == 0) {
+			if (!config.MANAGEABLE_ROLES || config.MANAGEABLE_ROLES.length == 0) {
 				bot.sendMessage(msg.channel, "I am not allowed to manage any roles.");
 				return;
 			}
