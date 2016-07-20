@@ -3,7 +3,7 @@ var config = require('./config.js');
 var edsm = require('./edsm.js');
 var edmaterializer = require("./edmaterializer.js");
 
-const VERSION = "FGEBot Version 0.3.2-JTJ12.1";
+const VERSION = "FGEBot Version 0.3.2-JTJ12.2";
 
 var options = {
 	autoReconnect: 1
@@ -427,7 +427,14 @@ var commands = {
 		process: function(args, bot, msg) {
 			var systems = compileArgs(args).split(':');
 			var origin = systems[0].trim();
-			var destination = systems[1].trim();
+			var destination = "";
+
+			if (systems.length == 1) {
+				destination = "Sol";
+			} else {
+				destination = systems[1].trim();
+			}
+
 			edsm.getWaypoints(origin, destination, 1000, bot, msg);
 		}
 	},

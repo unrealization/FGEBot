@@ -47,6 +47,44 @@ function _getServerString() {
 	return serverString;
 }
 
+function _sendMessage(bot, channel, message) {
+	function messageHandler(error, message) {
+		if (parts.length == 0) {
+			return;
+		}
+
+		var output = parts.shift();
+		bot.sendMessage(channel, output, {}, messageHandler);
+	}
+
+	if (message.length < 1500) {
+		bot.sendMessage(channel, message);
+		return;
+	}
+
+	var lines = message.split("\n");
+	var parts = [];
+	var output = "";
+
+	for (var index=0; index<lines.length; index++) {
+		if (output.length + lines[index].length < 1400) {
+			output += lines[index] + "\n";
+		} else {
+			parts.push(output);
+			output = lines[index] + "\n";
+		}
+	}
+
+	if (output != "") {
+		parts.push(output);
+	}
+
+	if (parts.length > 0) {
+		output = parts.shift();
+		bot.sendMessage(channel, output, {}, messageHandler);
+	}
+}
+
 //internal EDMaterializer client functions
 function _getStars(system, callback) {
 	function responseHandler(data, response) {
@@ -142,7 +180,7 @@ function _showWorldInfo(worldId, callback) {
 function getStars(system, bot, message) {
 	function callback(data) {
 		if (!data) {
-			bot.sendMessage(message.channel, "No data for " + system);
+			_sendMessage(bot, message.channel, "No data for " + system);
 			return;
 		}
 
@@ -173,7 +211,7 @@ function getStars(system, bot, message) {
 			output += " (Star Id: " + data[index]["id"] + ")\n";
 		}
 
-		bot.sendMessage(message.channel, output);
+		_sendMessage(bot, message.channel, output);
 	}
 
 	_getStars(system, callback);
@@ -182,7 +220,7 @@ function getStars(system, bot, message) {
 function getWorlds(system, bot, message) {
 	function callback(data) {
 		if (!data) {
-			bot.sendMessage(message.channel, "No data for " + system);
+			_sendMessage(bot, message.channel, "No data for " + system);
 			return;
 		}
 
@@ -199,7 +237,7 @@ function getWorlds(system, bot, message) {
 			output += " (World Id: " + data[index]['id'] + ")\n";
 		}
 
-		bot.sendMessage(message.channel, output);
+		_sendMessage(bot, message.channel, output);
 	}
 
 	_getWorlds(system, callback);
@@ -218,7 +256,7 @@ function setUseBetaServer(useBeta) {
 function showStarInfo(starId, bot, message) {
 	function callback(data) {
 		if (!data) {
-			bot.sendMessage(message.channel, "Cannot find star-id " + starId);
+			_sendMessage(bot, message.channel, "Cannot find star-id " + starId);
 			return;
 		}
 
@@ -274,7 +312,7 @@ function showStarInfo(starId, bot, message) {
 			output += "Notes:\t" + starInfo["notes"] + "\n";
 		}
 
-		bot.sendMessage(message.channel, output);
+		_sendMessage(bot, message.channel, output);
 	}
 
 	_showStarInfo(starId, callback);
@@ -283,7 +321,7 @@ function showStarInfo(starId, bot, message) {
 function showSurveyInfo(surveyId, bot, message) {
 	function callback(data) {
 		if (!data) {
-			bot.sendMessage(message.channel, "Cannot find survey-id " + surveyId);
+			_sendMessage(bot, message.channel, "Cannot find survey-id " + surveyId);
 			return;
 		}
 
@@ -395,7 +433,7 @@ function showSurveyInfo(surveyId, bot, message) {
 			output += "Yttrium\n";
 		}
 
-		bot.sendMessage(message.channel, output);
+		_sendMessage(bot, message.channel, output);
 	}
 
 	_showSurveyInfo(surveyId, callback);
@@ -404,7 +442,7 @@ function showSurveyInfo(surveyId, bot, message) {
 function showWorldInfo(worldId, bot, message) {
 	function callback(data) {
 		if (!data) {
-			bot.sendMessage(message.channel, "Cannot find world-id " + worldId);
+			_sendMessage(bot, message.channel, "Cannot find world-id " + worldId);
 			return;
 		}
 
@@ -498,7 +536,7 @@ function showWorldInfo(worldId, bot, message) {
 			}
 		}
 
-		bot.sendMessage(message.channel, output);
+		_sendMessage(bot, message.channel, output);
 	}
 
 	_showWorldInfo(worldId, callback);
