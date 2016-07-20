@@ -620,7 +620,7 @@ function getWaypoints(origin, destination, range, bot, message) {
 				_getNearbySystemsByCoordinates(currentCoords, searchRadius, nearbySystemsResponseHandler);
 			}
 		} else {
-			bot.sendMessage(message.author, "Sorry, " + second + " could not be located.");
+			bot.sendMessage(message.author, "Sorry, " + destination + " could not be located.");
 		}
 	}
 
