@@ -3,7 +3,7 @@ var config = require('./config.js');
 var edsm = require('./edsm.js');
 var edmaterializer = require("./edmaterializer.js");
 
-const VERSION = "FGEBot Version 0.3.2-JTJ12.2";
+const VERSION = "FGEBot Version 0.3.2-JTJ13";
 
 var options = {
 	autoReconnect: 1
@@ -75,6 +75,44 @@ function allowSubmission(user, message) {
 	return 0;
 }
 
+function _sendMessage(bot, channel, message) {
+	function messageHandler(error, message) {
+		if (parts.length == 0) {
+			return;
+		}
+
+		var output = parts.shift();
+		bot.sendMessage(channel, output, {}, messageHandler);
+	}
+
+	if (message.length < 1500) {
+		bot.sendMessage(channel, message);
+		return;
+	}
+
+	var lines = message.split("\n");
+	var parts = [];
+	var output = "";
+
+	for (var index=0; index<lines.length; index++) {
+		if (output.length + lines[index].length < 1400) {
+			output += lines[index] + "\n";
+		} else {
+			parts.push(output);
+			output = lines[index] + "\n";
+		}
+	}
+
+	if (output != "") {
+		parts.push(output);
+	}
+
+	if (parts.length > 0) {
+		output = parts.shift();
+		bot.sendMessage(channel, output, {}, messageHandler);
+	}
+}
+
 var compileArgs = function(args) {
 	args.splice(0,1);
 	return args.join(" ");
@@ -83,11 +121,11 @@ var compileArgs = function(args) {
 var commands = {
 	"ping": {
 		help: "Returns pong. Useful for determining if the bot is alive.",
-		process: function(args, bot, message) { bot.sendMessage(message.channel, "Pong!"); }
+		process: function(args, bot, message) { _sendMessage(bot, message.channel, "Pong!"); }
 	},
 	"version": {
 		help: "Display version information for this bot.",
-		process: function(args, bot, message) { bot.sendMessage(message.channel, VERSION); }
+		process: function(args, bot, message) { _sendMessage(bot, message.channel, VERSION); }
 	},
 	"uptime": {
     	usage: "",
@@ -121,7 +159,7 @@ var commands = {
 				timestr += secs + " seconds ";
 			}
 
-			bot.sendMessage(msg.channel,"Uptime: " + timestr);
+			_sendMessage(bot, msg.channel,"Uptime: " + timestr);
 		}
 	},
 	"msg": {
@@ -147,14 +185,14 @@ var commands = {
 			};
 
 			updateMessagebox();
-			bot.sendMessage(msg.channel,"message saved.")
+			_sendMessage(bot, msg.channel, "Message saved.")
 		}
 	},
 	"roles": {
 		help: "Show the public roles managed by the bot.",
 		process: function(args, bot, msg) {
 			if (!config.MANAGEABLE_ROLES || config.MANAGEABLE_ROLES.length == 0) {
-				bot.sendMessage(msg.channel, "I am not allowed to manage any roles.");
+				_sendMessage(bot, msg.channel, "I am not allowed to manage any roles.");
 				return;
 			}
 
@@ -168,14 +206,14 @@ var commands = {
 			}
 
 			if (publicRoles.length == 0) {
-				bot.sendMessage(msg.channel, "I am not allowed to manage any roles.");
+				_sendMessage(bot, msg.channel, "I am not allowed to manage any roles.");
 				return;
 			}
 
 			var output = "The following roles can be managed by the bot using the " + config.COMMAND_PREFIX + "join and " + config.COMMAND_PREFIX + "leave commands:\n";
 			output += "\t" + publicRoles.join("\n\t");
 
-			bot.sendMessage(msg.channel, output);
+			_sendMessage(bot, msg.channel, output);
 		}
 	},
 	"join": {
@@ -184,21 +222,21 @@ var commands = {
 		process: function(args, bot, msg) {
 			function roleHandler(error) {
 				if (error) {
-					bot.sendMessage(msg.channel, "I may have not permission to assign this role.");
+					_sendMessage(bot, msg.channel, "I may have not permission to assign this role.");
 				} else {
-					bot.sendMessage(msg.channel, "Done.");
+					_sendMessage(bot, msg.channel, "Done.");
 				}
 			}
 
 			if (!config.MANAGEABLE_ROLES || config.MANAGEABLE_ROLES.length == 0) {
-				bot.sendMessage(msg.channel, "I am not allowed to manage any roles.");
+				_sendMessage(bot, msg.channel, "I am not allowed to manage any roles.");
 				return;
 			}
 
 			var roleName = compileArgs(args);
 
 			if (config.MANAGEABLE_ROLES.indexOf(roleName.toLowerCase()) == -1) {
-				bot.sendMessage(msg.channel, "I am not allowed to manage this role.");
+				_sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
 				return;
 			}
 
@@ -213,12 +251,12 @@ var commands = {
 			}
 
 			if (!role) {
-				bot.sendMessage(msg.channel, "The role " + roleName + " is unknown on this server.");
+				_sendMessage(bot, msg.channel, "The role " + roleName + " is unknown on this server.");
 				return;
 			}
 
 			if (bot.memberHasRole(msg.author, role)) {
-				bot.sendMessage(msg.channel, "You already have the role " + roleName + ".");
+				_sendMessage(bot, msg.channel, "You already have the role " + roleName + ".");
 				return;
 			}
 
@@ -235,21 +273,21 @@ var commands = {
 		process: function(args, bot, msg) {
 			function roleHandler(error) {
 				if (error) {
-					bot.sendMessage(msg.channel, "I may have not permission to assign this role.");
+					_sendMessage(bot, msg.channel, "I may have not permission to assign this role.");
 				} else {
-					bot.sendMessage(msg.channel, "Done.");
+					_sendMessage(bot, msg.channel, "Done.");
 				}
 			}
 
 			if (config.MANAGEABLE_ROLES.length == 0) {
-				bot.sendMessage(msg.channel, "I am not allowed to manage any roles.");
+				_sendMessage(bot, msg.channel, "I am not allowed to manage any roles.");
 				return;
 			}
 
 			var roleName = compileArgs(args);
 
 			if (config.MANAGEABLE_ROLES.indexOf(roleName.toLowerCase()) == -1) {
-				bot.sendMessage(msg.channel, "I am not allowed to manage this role.");
+				_sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
 				return;
 			}
 
@@ -264,12 +302,12 @@ var commands = {
 			}
 
 			if (!role) {
-				bot.sendMessage(msg.channel, "The role " + roleName + " is unknown on this server.");
+				_sendMessage(bot, msg.channel, "The role " + roleName + " is unknown on this server.");
 				return;
 			}
 
 			if (!bot.memberHasRole(msg.author, role)) {
-				bot.sendMessage(msg.channel, "You do not have the role " + roleName + ".");
+				_sendMessage(bot, msg.channel, "You do not have the role " + roleName + ".");
 				return;
 			}
 
@@ -278,6 +316,52 @@ var commands = {
 			} catch(e) {
 				console.log(e);
 			}
+		}
+	},
+	"members": {
+		usage: "<role>",
+		help: "Get the list of users that have the given role.",
+		process: function(args, bot, msg) {
+			if (config.MANAGEABLE_ROLES.length == 0) {
+				_sendMessage(bot, msg.channel, "I am not allowed to manage any roles.");
+				return;
+			}
+
+			var roleName = compileArgs(args);
+
+			if (config.MANAGEABLE_ROLES.indexOf(roleName.toLowerCase()) == -1) {
+				_sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
+				return;
+			}
+
+			var serverRoles = msg.server.roles;
+			var role = null;
+
+			for (var index=0; index<serverRoles.length; index++) {
+				if (serverRoles[index].name.toLowerCase() == roleName.toLowerCase()) {
+					role = serverRoles[index];
+					break;
+				}
+			}
+
+			if (!role) {
+				_sendMessage(bot, msg.channel, "The role " + roleName + " is unknown on this server.");
+				return;
+			}
+
+			var members = msg.server.usersWithRole(role);
+
+			if (members.length == 0) {
+				_sendMessage(bot, msg.channel, "The role " + role.name + " has no members.");
+			}
+
+			var output = "The role " + role.name + " has " + members.length + " members:\n";
+			for (var index=0; index<members.length; index++) {
+				output += "\t" + members[index].name + "\n";
+			}
+
+			_sendMessage(bot, msg.channel, "List sent as private message.");
+			_sendMessage(bot, msg.author, output);
 		}
 	},
 	"ratsignal": {
@@ -292,7 +376,7 @@ var commands = {
 			}
 
 			if (!config.RATSIGNAL_CONTACT_ROLES || config.RATSIGNAL_CONTACT_ROLES.length == 0) {
-				bot.sendMessage(msg.channel, "Sadly there is nobody here to help you.");
+				_sendMessage(bot, msg.channel, "Sadly there is nobody here to help you.");
 				return;
 			}
 
@@ -309,7 +393,7 @@ var commands = {
 			}
 
 			if (contactRoles.length == 0) {
-				bot.sendMessage(msg.channel, "Sadly there is nobody here to help you.");
+				_sendMessage(bot, msg.channel, "Sadly there is nobody here to help you.");
 				return;
 			}
 
@@ -324,6 +408,7 @@ var commands = {
 				for (var index=0; index<serverChannels.length; index++) {
 					if (serverChannels[index].name == config.RATSIGNAL_EMERGENCY_CHANNEL) {
 						channel = serverChannels[index];
+						break;
 					}
 				}
 			}
@@ -337,7 +422,7 @@ var commands = {
 				output += "Move to " + channel + " and wait for your rescue.";
 			}
 
-			bot.sendMessage(msg.channel, output);
+			_sendMessage(bot, msg.channel, output);
 		}
 	},
 	"aliases": {
@@ -446,7 +531,7 @@ var commands = {
 			var edsmUser = args.join(" ");
 			edsmMappings[msg.author] = edsmUser;
 			updateEdsmMappings();
-			bot.sendMessage(msg.channel, "Mapping stored.");
+			_sendMessage(bot, msg.channel, "Mapping stored.");
 		}
 	},
 	"unregister": {
@@ -457,7 +542,7 @@ var commands = {
 			} else {
 				delete edsmMappings[msg.author];
 				updateEdsmMappings();
-				bot.sendMessage(msg.channel, "Mapping removed.");
+				_sendMessage(bot, msg.channel, "Mapping removed.");
 			}
 		}
 	},
@@ -475,9 +560,9 @@ var commands = {
 			edsmUser = getEdsmUser(user);
 
 			if (!edsmUser) {
-				bot.sendMessage(msg.channel, "No EDSM Username found for " + user);
+				_sendMessage(bot, msg.channel, "No EDSM Username found for " + user);
 			} else {
-				bot.sendMessage(msg.channel, edsmUser);
+				_sendMessage(bot, msg.channel, edsmUser);
 			}
 		}
 	},
@@ -499,7 +584,7 @@ var commands = {
 			}
 
 			if (usernames.length == 0 && config.TRILATERATION_CONTACT_ROLES.length == 0) {
-				bot.sendMessage(msg.channel, "It appears as if there is nobody available to help you with this.");
+				_sendMessage(bot, msg.channel, "It appears as if there is nobody available to help you with this.");
 			} else {
 				var message = "";
 
@@ -517,7 +602,7 @@ var commands = {
 					message += "Please submit your distances using the " + config.COMMAND_PREFIX + "submit command.";
 				}
 
-				bot.sendMessage(msg.channel, message);
+				_sendMessage(bot, msg.channel, message);
 			}
 		}
 	},
@@ -526,12 +611,12 @@ var commands = {
 		help: "Submit the distance to the given system.",
 		process: function(args, bot, msg) {
 			if (config.EDSM_ENABLE_SUBMISSION != 1) {
-				bot.sendMessage(msg.channel, "Distance submission is currently disabled.");
+				_sendMessage(bot, msg.channel, "Distance submission is currently disabled.");
 				return;
 			}
 
 			if (!allowSubmission(msg.author, msg)) {
-				bot.sendMessage(msg.channel, "You are not allowed to submit distances.");
+				_sendMessage(bot, msg.channel, "You are not allowed to submit distances.");
 				return;
 			}
 
@@ -539,14 +624,14 @@ var commands = {
 			var distanceRegEx = new RegExp('^\\d+(\\.\\d{1,2})?$');
 
 			if (!distanceRegEx.test(distance)) {
-				bot.sendMessage(msg.channel, "Invalid distance.");
+				_sendMessage(bot, msg.channel, "Invalid distance.");
 				return;
 			}
 
 			var systems = compileArgs(args).split(config.NAME_SEPARATOR);
 
 			if (systems.length != 2) {
-				bot.sendMessage(msg.channel, "You have not provided enough system names.");
+				_sendMessage(bot, msg.channel, "You have not provided enough system names.");
 				return;
 			}
 
@@ -619,9 +704,8 @@ var commands = {
 			}
 
 			// console.log(output);
-			//bot.sendMessage(msg.channel, output);
-			bot.sendMessage(msg.channel, "Help sent as private message.");
-			bot.sendMessage(msg.author, output);
+			_sendMessage(bot, msg.channel, "Help sent as private message.");
+			_sendMessage(bot, msg.author, output);
 		}
 	},
 };
@@ -685,7 +769,7 @@ function handleMessage(message) {
 				cmd.process(args, FGEBot, message);
 			} catch(e) {
 				if (config.debug) {
-					FGEBot.sendMessage(message.channel, "Command " + message.content + " failed.\n" + e.stack);
+					//_sendMessage(FGEBot, message.channel, "Command " + message.content + " failed.\n" + e.stack);
 				}
 			}
 		}
@@ -701,7 +785,7 @@ function handleUserStatusChange(user, status, gameId) {
 				var channel = FGEBot.channels.get("id", message.channel);
 				delete messagebox[user.id];
 				updateMessagebox();
-				FGEBot.sendMessage(channel, message.content);
+				_sendMessage(FGEBot, channel, message.content);
 			}
 		}
 	} catch(e) {
