@@ -421,6 +421,16 @@ var commands = {
 			edsm.getNearbySystems(name, range, bot, msg);
 		}
 	},
+	"waypoints": {
+		usage: "<origin> : <destination>",
+		help: "Get a list of waypoints between the origin and destination to help in-game plotting.",
+		process: function(args, bot, msg) {
+			var systems = compileArgs(args).split(':');
+			var origin = systems[0].trim();
+			var destination = systems[1].trim();
+			edsm.getWaypoints(origin, destination, 1000, bot, msg);
+		}
+	},
 	"register": {
 		usage: "<name>",
 		help: "Register a mapping from your Discord user to your EDSM user.",

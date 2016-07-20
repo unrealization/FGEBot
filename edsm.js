@@ -91,6 +91,44 @@ function _getServerString() {
 	return serverString;
 }
 
+function _sendMessage(bot, channel, message) {
+	function messageHandler(error, message) {
+		if (parts.length == 0) {
+			return;
+		}
+
+		var output = parts.shift();
+		bot.sendMessage(channel, output, {}, messageHandler);
+	}
+
+	if (message.length < 1500) {
+		bot.sendMessage(channel, message);
+		return;
+	}
+
+	var lines = message.split("\n");
+	var parts = [];
+	var output = "";
+
+	for (var index=0; index<lines.length; index++) {
+		if (output.length + lines[index].length < 1400) {
+			output += lines[index] + "\n";
+		} else {
+			parts.push(output);
+			output = lines[index] + "\n";
+		}
+	}
+
+	if (output != "") {
+		parts.push(output);
+	}
+
+	if (parts.length > 0) {
+		output = parts.shift();
+		bot.sendMessage(channel, output, {}, messageHandler);
+	}
+}
+
 function _getCommanderCoordinates(commander, callback) {
 	function systemResponseHandler(data) {
 		var output = _getPositionString(commander, data);
@@ -182,6 +220,29 @@ function _getNearbySystems(system, range, callback) {
 
 	var serverString = _getServerString();
 	client.get(serverString + "/api-v1/sphere-systems?systemName=" + system + "&coords=1" + rangeParameter, responseHandler).on("error", errorHandler);
+}
+
+function _getNearbySystemsByCoordinates(coords, range, callback) {
+	function responseHandler(data, response) {
+		if (data) {
+			callback(data);
+		} else {
+			callback(null);
+		}
+	}
+
+	function errorHandler(err) {
+		callback(null);
+	}
+
+	var rangeParameter = "";
+
+	if (range != null) {
+		rangeParameter = "&radius=" + range;
+	}
+
+	var serverString = _getServerString();
+	client.get(serverString + "/api-v1/sphere-systems?x=" + Number(coords.x).toFixed(2) + "&y=" + Number(coords.y).toFixed(2) + "&z=" + Number(coords.z).toFixed(2) + "&coords=1" + rangeParameter, responseHandler).on("error", errorHandler);
 }
 
 function _getSystemCoordinates(system, callback) {
@@ -365,7 +426,8 @@ function getNearbySystems(name, range, bot, message) {
 				bot.sendMessage(message.author, "No systems can be found near " + systemName);
 			} else {
 				output = systems + " systems found near " + systemName + "\n\n" + output;
-				bot.sendMessage(message.author, output);
+				//bot.sendMessage(message.author, output);
+				_sendMessage(bot, message.author, output);
 			}
 		} else {
 			bot.sendMessage(message.author, "Something went wrong.");
@@ -444,7 +506,8 @@ function getRoute(first, second, range, bot, message) {
 
 			if (closestSystem == null || closestSystem.name == currentSystem.name) {
 				output += "\nYou have reached a dead end. This may be due to insufficent data or an insufficient jump range.";
-				bot.sendMessage(message.author, output);
+				//bot.sendMessage(message.author, output);
+				_sendMessage(bot, message.author, output);
 			} else {
 				jumpNo++;
 				var jumpDistance = _calcDistance(currentSystem.coords, closestSystem.coords);
@@ -452,7 +515,8 @@ function getRoute(first, second, range, bot, message) {
 
 				if (closestSystem.name == secondSystem.name) {
 					output += "\nYou have arrived. Your destination is on your left.";
-					bot.sendMessage(message.author, output);
+					//bot.sendMessage(message.author, output);
+					_sendMessage(bot, message.author, output);
 				} else {
 					currentSystem = closestSystem;
 					_getNearbySystems(_sanitizeString(currentSystem.name), range, nearbySystemsResponseHandler);
@@ -460,7 +524,8 @@ function getRoute(first, second, range, bot, message) {
 			}
 		} else {
 			output += "\nSomething's wrong...";
-			bot.sendMessage(message.author, output);
+			//bot.sendMessage(message.author, output);
+			_sendMessage(bot, message.author, output);
 		}
 	}
 
@@ -486,6 +551,142 @@ function getSystemCoordinates(system, bot, message) {
 	}
 
 	_getSystemCoordinates(_checkAliases(_sanitizeString(system)), responseHandler);
+}
+
+function _calculateStep(originCoords, destinationCoords, range) {
+	var distance = _calcDistance(originCoords, destinationCoords);
+
+	if (distance <= range) {
+		return destinationCoords;
+	}
+
+	var rateX = (originCoords.x - destinationCoords.x)/distance;
+	var rateY = (originCoords.y - destinationCoords.y)/distance;
+	var rateZ = (originCoords.z - destinationCoords.z)/distance;
+
+	var coords = {
+		x: originCoords.x - (rateX * range),
+		y: originCoords.y - (rateY * range),
+		z: originCoords.z - (rateZ * range)
+	};
+
+	return coords;
+}
+
+function getWaypoints(origin, destination, range, bot, message) {
+	function originCoordsResponseHandler(coords) {
+		if (coords) {
+			if (coords.coords == undefined) {
+				var name = origin;
+
+				if (coords.name) {
+					name = coords.name;
+				}
+
+				bot.sendMessage(message.author, "Coodinates for " + name + " are unknown.");
+				return;
+			}
+
+			originSystem = coords;
+			_getSystemOrCommanderCoordinates(_sanitizeString(destination), destinationCoordsResponseHandler);
+		} else {
+			bot.sendMessage(message.author, "Sorry, " + origin + " could not be located.");
+		}
+	}
+
+	function destinationCoordsResponseHandler(coords) {
+		if (coords) {
+			if (coords.coords == undefined) {
+				var name = destination;
+
+				if (coords.name) {
+					name = coords.name;
+				}
+
+				bot.sendMessage(message.author, "Coordinates for " + name + " are unknown.");
+				return;
+			}
+
+			destinationSystem = coords;
+			var distance = _calcDistance(originSystem.coords, destinationSystem.coords);
+			currentOriginCoords = originSystem.coords;
+			currentCoords = _calculateStep(currentOriginCoords, destinationSystem.coords, range);
+			waypointNo = 0;
+			output += "#0\t" + originSystem.name + "\t(Distance: 0ly)\t(Distance from " + destinationSystem.name + ": " + Number(distance).toFixed(2) + " ly)\n";
+
+			if (currentCoords == destinationSystem.coords) {
+				bot.sendMessage(message.author, output);
+			} else {
+				_getNearbySystemsByCoordinates(currentCoords, searchRadius, nearbySystemsResponseHandler);
+			}
+		} else {
+			bot.sendMessage(message.author, "Sorry, " + second + " could not be located.");
+		}
+	}
+
+	function nearbySystemsResponseHandler(data) {
+		if (data) {
+			var bestSystem = null;
+			var bestSystemDistance = null;
+
+			for (var index=0; index<data.length; index++) {
+				if (data[index].coords == undefined) {
+					continue;
+				}
+
+				var distance = _calcDistance(currentOriginCoords, data[index].coords);
+
+				if (distance > range) {
+					continue;
+				}
+
+				if (bestSystemDistance == null || distance > bestSystemDistance) {
+					bestSystem = data[index];
+					bestSystemDistance = distance;
+				}
+			}
+
+			waypointNo++;
+
+			if (bestSystem == null) {
+				var distance = _calcDistance(currentOriginCoords, currentCoords);
+				output += "#" + waypointNo + "\tX: " + Number(currentCoords.x).toFixed(2) + ", Y: " + Number(currentCoords.y).toFixed(2) + ", Z: " + Number(currentCoords.z).toFixed(2) + "\t(Distance: " + Number(distance).toFixed(2) + " ly)";
+			} else {
+				currentCoords = bestSystem.coords;
+				output += "#" + waypointNo + "\t" + bestSystem.name + "\t(Distance: " + Number(bestSystemDistance).toFixed(2) + " ly)";
+			}
+
+			var destinationDistance = _calcDistance(currentCoords, destinationSystem.coords);
+			output += "\t(Distance to " + destinationSystem.name + ": " + Number(destinationDistance).toFixed(2) + " ly)\n";
+
+			currentOriginCoords = currentCoords;
+			currentCoords = _calculateStep(currentOriginCoords, destinationSystem.coords, range);
+
+			if (currentCoords == destinationSystem.coords) {
+				waypointNo++;
+				output += "#" + waypointNo + "\t" + destinationSystem.name + "\t(Distance: " + Number(destinationDistance).toFixed(2) + " ly)";
+				//bot.sendMessage(message.author, output);
+				_sendMessage(bot, message.author, output);
+			} else {
+				_getNearbySystemsByCoordinates(currentCoords, searchRadius, nearbySystemsResponseHandler);
+			}
+		} else {
+			output += "\nSomething's wrong...";
+			//bot.sendMessage(message.author, output);
+			_sendMessage(bot, message.author, output);
+		}
+	}
+
+	bot.sendMessage(message.channel, "This may take a while... Gonna send you a message...");
+	var originSystem = null;
+	var destinationSystem = null;
+	var currentOriginCoords = null;
+	var currentCoords = null;
+	var output = "";
+	var waypointNo = null;
+	var searchRadius = 50;
+
+	_getSystemOrCommanderCoordinates(_sanitizeString(origin), originCoordsResponseHandler);
 }
 
 function listAliases(bot, message) {
@@ -567,6 +768,7 @@ exports.getDistance = getDistance;
 exports.getNearbySystems = getNearbySystems;
 exports.getRoute = getRoute;
 exports.getSystemCoordinates = getSystemCoordinates;
+exports.getWaypoints = getWaypoints;
 exports.listAliases = listAliases;
 exports.locateCommander = locateCommander;
 exports.setUseBetaServer = setUseBetaServer;
