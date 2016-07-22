@@ -460,6 +460,41 @@ function getNearbySystems(name, range, bot, message) {
 	_getSystemOrCommanderCoordinates(_sanitizeString(name), coordinatesResponseHandler);
 }
 
+function getNearbySystemsByCoordinates(x,y,z, range, bot, message) {
+	function nearbySystemsResponseHandler(data) {
+		if (data) {
+			var output = "";
+			var systems = 0;
+
+			for (var index=0; index<data.length; index++) {
+				var distance = _calcDistance(coords.coords, data[index].coords);
+				output += data[index].name + "\t(" + Number(distance).toFixed(2) + " ly)\n";
+				systems++;
+			}
+
+			if (systems == 0) {
+				_sendMessage(bot, message.author, "No systems can be found near " + _getCoordString(coords));
+			} else {
+				output = systems + " systems found near " + _getCoordString(coords) + "\n\n" + output;
+				_sendMessage(bot, message.author, output);
+			}
+		} else {
+			_sendMessage(bot, message.author, "Something went wrong.");
+		}
+	}
+
+	var coords = {
+		'coords': {
+			'x': x,
+			'y': y,
+			'z': z
+		}
+	};
+
+	_sendMessage(bot, message.channel, "This may take a while... Gonna send you a message...");
+	_getNearbySystemsByCoordinates(coords.coords, range, nearbySystemsResponseHandler);
+}
+
 function getRoute(origin, destination, range, bot, message) {
 	function originCoordsResponseHandler(coords) {
 		if (coords) {
@@ -760,6 +795,7 @@ function submitDistance(targetSystem, referenceSystem, distance, commander, bot,
 exports.getCommanderCoordinates = getCommanderCoordinates;
 exports.getDistance = getDistance;
 exports.getNearbySystems = getNearbySystems;
+exports.getNearbySystemsByCoordinates = getNearbySystemsByCoordinates;
 exports.getRoute = getRoute;
 exports.getSystemCoordinates = getSystemCoordinates;
 exports.getWaypoints = getWaypoints;

@@ -506,6 +506,51 @@ var commands = {
 			edsm.getNearbySystems(name, range, bot, msg);
 		}
 	},
+	"nearcoords": {
+		usage: "<x> <y> <z> [r:<range>]",
+		help: "Find systems near the provided coordinates.",
+		process: function(args, bot, msg) {
+			var lastArgIndex = args.length-1;
+			var lastArg = args[lastArgIndex];
+			var rangeRegEx = new RegExp('^r:\\d+(\\.\\d{1,2})?$');
+			var range = null;
+
+			if (rangeRegEx.test(lastArg)) {
+				range = lastArg.substr(2);
+				args.pop();
+			}
+
+			var coords = compileArgs(args).split(" ");
+
+			if (coords.length < 3) {
+				_sendMessage(bot, msg.channel, "Not enough values");
+				return;
+			}
+
+			var x = coords[0].trim();
+			var y = coords[1].trim();
+			var z = coords[2].trim();
+
+			var numRegEx = new RegExp('^(-)?\\d+(\\.\\d{1,2})?$');
+
+			if (!numRegEx.test(x)) {
+				_sendMessage(bot, msg.channel, x + " is not a valid value.");
+				return;
+			}
+
+			if (!numRegEx.test(y)) {
+				_sendMessage(bot, msg.channel, y + " is not a valid value.");
+				return;
+			}
+
+			if (!numRegEx.test(z)) {
+				_sendMessage(bot, msg.channel, z + " is not a valid value.");
+				return;
+			}
+
+			edsm.getNearbySystemsByCoordinates(x, y, z, range, bot, msg);
+		}
+	},
 	"waypoints": {
 		usage: "<origin> : <destination>",
 		help: "Get a list of waypoints between the origin and destination to help in-game plotting.",
