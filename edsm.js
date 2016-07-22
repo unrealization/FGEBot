@@ -753,7 +753,7 @@ function submitDistance(targetSystem, referenceSystem, distance, commander, bot,
 		}
 	}
 
-	_submitDistance(_checkAliases(targetSystem, 1), _checkAliases(referenceSystem, 1), distance, commander + " Test", responseHandler);
+	_submitDistance(_checkAliases(targetSystem, 1), _checkAliases(referenceSystem, 1), distance, commander, responseHandler);
 }
 
 //exports
