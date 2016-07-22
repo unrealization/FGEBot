@@ -3,7 +3,7 @@ var config = require('./config.js');
 var edsm = require('./edsm.js');
 var edmaterializer = require("./edmaterializer.js");
 
-const VERSION = "FGEBot Version 0.3.2-JTJ14";
+const VERSION = "FGEBot Version 0.3.2-JTJ14.1";
 
 var options = {
 	autoReconnect: 1
@@ -449,13 +449,36 @@ var commands = {
 		help: "Gets the distance from one system or commander to another. If <second> is not given, gets the distance from first to Sol",
 		process: function(args,bot,msg) {
 			var query = compileArgs(args).split(config.NAME_SEPARATOR);
+			console.log(query);
 			var first = query[0].trim();
+
+			if (first == "") {
+				var edsmUser = getEdsmUser(msg.author);
+
+				if (edsmUser) {
+					first = edsmUser;
+				} else {
+					first = "Sol";
+				}
+			}
+
 			var second = null;
 
 			if (query.length == 1) {
-				second = "Sol";
+				var edsmUser = getEdsmUser(msg.author);
+
+				if (edsmUser) {
+					second = edsmUser;
+				} else {
+					second = "Sol";
+				}
 			} else {
 				second = query[1].trim();
+			}
+
+			if (first == second) {
+				_sendMessage(bot, msg.channel, first + " = " + second + ", which doesn't really make all that much sense.");
+				return;
 			}
 
 			edsm.getDistance(first, second, bot, msg);
@@ -477,12 +500,34 @@ var commands = {
 
 			var query = compileArgs(args).split(config.NAME_SEPARATOR);
 			var first = query[0].trim();
+
+			if (first == "") {
+				var edsmUser = getEdsmUser(msg.author);
+
+				if (edsmUser) {
+					first = edsmUser;
+				} else {
+					first = "Sol";
+				}
+			}
+
 			var second = null;
 
 			if (query.length == 1) {
-				second = "Sol";
+				var edsmUser = getEdsmUser(msg.author);
+
+				if (edsmUser) {
+					second = edsmUser;
+				} else {
+					second = "Sol";
+				}
 			} else {
 				second = query[1].trim();
+			}
+
+			if (first == second) {
+				_sendMessage(bot, msg.channel, first + " = " + second + ", which doesn't really make all that much sense.");
+				return;
 			}
 
 			edsm.getRoute(first, second, range, bot, msg);
@@ -503,6 +548,17 @@ var commands = {
 			}
 
 			var name = compileArgs(args);
+
+			if (name == "") {
+				var edsmUser = getEdsmUser(msg.author);
+
+				if (edsmUser) {
+					name = edsmUser;
+				} else {
+					name = "Sol";
+				}
+			}
+
 			edsm.getNearbySystems(name, range, bot, msg);
 		}
 	},
@@ -552,17 +608,39 @@ var commands = {
 		}
 	},
 	"waypoints": {
-		usage: "<origin> : <destination>",
+		usage: "<origin> " + config.NAME_SEPARATOR + " <destination>",
 		help: "Get a list of waypoints between the origin and destination to help in-game plotting.",
 		process: function(args, bot, msg) {
-			var systems = compileArgs(args).split(':');
+			var systems = compileArgs(args).split(config.NAME_SEPARATOR);
 			var origin = systems[0].trim();
+
+			if (origin == "") {
+				var edsmUser = getEdsmUser(msg.author);
+
+				if (edsmUser) {
+					origin = edsmUser;
+				} else {
+					origin = "Sol";
+				}
+			}
+
 			var destination = "";
 
 			if (systems.length == 1) {
-				destination = "Sol";
+				var edsmUser = getEdsmUser(msg.author);
+
+				if (edsmUser) {
+					destination = edsmUser;
+				} else {
+					destination = "Sol";
+				}
 			} else {
 				destination = systems[1].trim();
+			}
+
+			if (origin == destination) {
+				_sendMessage(bot, msg.channel, origin + " = " + destination + ", which doesn't really make all that much sense.");
+				return;
 			}
 
 			edsm.getWaypoints(origin, destination, 1000, bot, msg);
@@ -572,8 +650,13 @@ var commands = {
 		usage: "<name>",
 		help: "Register a mapping from your Discord user to your EDSM user.",
 		process: function(args, bot, msg) {
-			args.shift();
-			var edsmUser = args.join(" ");
+			var edsmUser = compileArgs(args);
+
+			if (!edsmUser) {
+				_sendMessage(bot, msg.channel, "Providing an EDSM username may have been helpful.");
+				return;
+			}
+
 			edsmMappings[msg.author] = edsmUser;
 			updateEdsmMappings();
 			_sendMessage(bot, msg.channel, "Mapping stored.");
