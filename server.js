@@ -371,7 +371,7 @@ var commands = {
 				var edsmUser = getEdsmUser(msg.author);
 
 				if (edsmUser) {
-					edsm.getCommanderCoordinates(edsmUser, bot, message);
+//					edsm.getCommanderCoordinates(edsmUser, bot, message);
 				}
 			}
 
