@@ -416,7 +416,7 @@ var commands = {
 			bot.sendMessage(channel, output, {}, callback);
 
 			output = msg.author + ", a rat signal has been sent.\n";
-			output += "Stay calm and refer to the Emergency Fuel Procedures detailled here: http://imgur.com/gallery/Vl2EQ/\n";
+			output += "Stay calm and refer to the Emergency Fuel Procedures detailled here: https://docs.google.com/document/d/1IuzDbJ0GBvrjStwytKiks2OwJcS9OMUdouExVQsDVlo/edit?usp=drive_web\n";
 
 			if (msg.channel.name != channel.name) {
 				output += "Move to " + channel + " and wait for your rescue.";
