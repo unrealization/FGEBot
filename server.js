@@ -3,7 +3,7 @@ var config = require('./config.js');
 var edsm = require('./edsm.js');
 var edmaterializer = require("./edmaterializer.js");
 
-const VERSION = "FGEBot Version 0.3.2-JTJ14.1";
+const VERSION = "FGEBot Version 0.3.2-JTJ15";
 
 var options = {
 	autoReconnect: 1
@@ -424,6 +424,10 @@ var commands = {
 
 			_sendMessage(bot, msg.channel, output);
 		}
+	},
+	"edstatus": {
+		help: "Elite: Dangerous Server Status Info",
+		process: function(args, bot, msg) { edsm.getEDStatus(bot, msg); }
 	},
 	"aliases": {
 		help: "Returns the list of supported alias systems",

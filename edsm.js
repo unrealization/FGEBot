@@ -215,6 +215,25 @@ function _getCommanderSystem(commander, callback) {
 	client.get(serverString + "/api-logs-v1/get-position?commanderName=" + commander, responseHandler).on("error", errorHandler);
 }
 
+function _getEDStatus(callback) {
+	function responseHandler(data, response) {
+		try {
+			callback(data);
+		} catch (e) {
+			console.log("JSON parse exception", e);
+			callback(null);
+		}
+	}
+
+	function errorHandler(err) {
+		console.log("Something went wrong on the request", err.request.options);
+		callback(null);
+	}
+
+	var serverString = _getServerString();
+	client.get(serverString + "/api-status-v1/elite-server", responseHandler).on("error", errorHandler);
+}
+
 function _getNearbySystems(system, range, callback) {
 	function responseHandler(data, response) {
 		if (data) {
@@ -414,6 +433,19 @@ function getDistance(first, second, bot, message) {
 	var firstSystem = null;
 	var secondSystem = null;
 	_getSystemOrCommanderCoordinates(_sanitizeString(first), firstCoordsResponseHandler);
+}
+
+function getEDStatus(bot, message) {
+	function statusResponseHandler(data) {
+		if (!data) {
+			_sendMessage(bot, message.channel, "I was unable to retrieve the Elite: Dangerous Server Status.");
+			return;
+		}
+
+		_sendMessage(bot, message.channel, "Elite: Dangerous Server Status: " + data.message + "\nLast Update: " + data.lastUpdate);
+	}
+
+	_getEDStatus(statusResponseHandler);
 }
 
 function getNearbySystems(name, range, bot, message) {
@@ -794,6 +826,7 @@ function submitDistance(targetSystem, referenceSystem, distance, commander, bot,
 //exports
 exports.getCommanderCoordinates = getCommanderCoordinates;
 exports.getDistance = getDistance;
+exports.getEDStatus = getEDStatus;
 exports.getNearbySystems = getNearbySystems;
 exports.getNearbySystemsByCoordinates = getNearbySystemsByCoordinates;
 exports.getRoute = getRoute;
