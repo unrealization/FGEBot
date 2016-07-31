@@ -5,6 +5,7 @@ var client = new Client();
 var aliases = {};
 aliases["kippax ring"] = "HIP 72043";
 aliases["rr lyrae"] = "HIP 95497";
+aliases["jaques"] = "Eol Prou RS-T d3-94";
 aliases["jaques station"] = "Eol Prou RS-T d3-94";
 aliases["sag a"] = "Sagittarius A*";
 
