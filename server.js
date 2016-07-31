@@ -3,7 +3,7 @@ var config = require('./config.js');
 var edsm = require('./edsm.js');
 var edmaterializer = require("./edmaterializer.js");
 
-const VERSION = "FGEBot Version 0.3.2-JTJ15.2";
+const VERSION = "FGEBot Version 0.3.2-JTJ15.3";
 
 var options = {
 	autoReconnect: 1
