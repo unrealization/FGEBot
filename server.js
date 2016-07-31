@@ -3,7 +3,7 @@ var config = require('./config.js');
 var edsm = require('./edsm.js');
 var edmaterializer = require("./edmaterializer.js");
 
-const VERSION = "FGEBot Version 0.3.2-JTJ15.1";
+const VERSION = "FGEBot Version 0.3.2-JTJ15.2";
 
 var options = {
 	autoReconnect: 1
@@ -453,7 +453,6 @@ var commands = {
 		help: "Gets the distance from one system or commander to another. If <second> is not given, gets the distance from first to Sol",
 		process: function(args,bot,msg) {
 			var query = compileArgs(args).split(config.NAME_SEPARATOR);
-			console.log(query);
 			var first = query[0].trim();
 
 			if (first == "") {
