@@ -51,12 +51,12 @@ var _getPositionString = function(commander, data) {
 }
  
 function _sanitizeString(input) {
-	var output = input.replace(" ", "%20").replace("+", "%2B").replace("'", "%27");
+	var output = input.replace(/ /g, "%20").replace(/\+/g, "%2B").replace(/\'/g, "%27");
 	return output;
 }
 
 function _desanitizeString(input) {
-	var output = input.replace("%20", " ").replace("%2B", "+").replace("%27", "'");
+	var output = input.replace(/\%20/g, " ").replace(/\%2B/g, "+").replace(/\%27/g, "'");
 	return output;
 }
 
