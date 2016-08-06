@@ -3,7 +3,7 @@ var config = require('./config.js');
 var edsm = require('./edsm.js');
 var edmaterializer = require("./edmaterializer.js");
 
-const VERSION = "FGEBot Version 0.3.2-JTJ16.5";
+const VERSION = "FGEBot Version 0.3.2-JTJ16.6";
 
 var options = {
 	autoReconnect: 1
@@ -178,6 +178,30 @@ function checkPermission(channel, user, permission) {
 
 	var userPermissions = channel.permissionsOf(user);
 	return userPermissions.hasPermission(permission);
+}
+
+function getServer(bot, serverId) {
+	var serverList = bot.servers;
+
+	for (var x=0; x<serverList.length; x++) {
+		if (serverList[x].id == serverId) {
+			return serverList[x];
+		}
+	}
+
+	return null;
+}
+
+function getServerByName(bot, server) {
+	var serverList = bot.servers;
+
+	for (var x=0; x<serverList.length; x++) {
+		if (serverList[x].name == server) {
+			return serverList[x];
+		}
+	}
+
+	return null;
 }
 
 function getChannel(server, channelId) {
@@ -422,6 +446,7 @@ var commands = {
 		process: function(args, bot, msg) {
 			function roleHandler(error) {
 				if (error) {
+					console.log("Error: " + error);
 					_sendMessage(bot, msg.channel, "I may have not permission to assign this role.");
 				} else {
 					_sendMessage(bot, msg.channel, "Done.");
@@ -459,6 +484,7 @@ var commands = {
 		process: function(args, bot, msg) {
 			function roleHandler(error) {
 				if (error) {
+					console.log("Error: " + error);
 					_sendMessage(bot, msg.channel, "I may have not permission to assign this role.");
 				} else {
 					_sendMessage(bot, msg.channel, "Done.");
@@ -988,6 +1014,93 @@ var commands = {
 			var surveyId = compileArgs(args);
 			edmaterializer.showSurveyInfo(surveyId, bot, msg);
 		}
+	},
+	"servers": {
+		help: "Show the servers the bot is connected to.",
+		process: function(args, bot, msg) {
+			var serverList = bot.servers;
+
+			if (serverList.length == 0) {
+				_sendMessage(bot, msg.channel, "The bot is not connected to any server.");
+				return;
+			}
+
+			var output = "The bot is connected to the following servers:";
+
+			for (var x=0; x<serverList.length; x++) {
+				output += "\n\t" + serverList[x].name + " (Id: " + serverList[x].id + ")";
+			}
+
+			_sendMessage(bot, msg.channel, output);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"joinServer": {
+		usage: "<invite>",
+		help: "Join the server through the given invite.",
+		process: function(args, bot, msg) {
+			function callback(error, server) {
+				if (error) {
+					console.log("Error: " + error);
+					_sendMessage(bot, msg.channel, "I cannot join the server.");
+					return;
+				}
+
+				_sendMessage(bot, msg.channel, "Successfully joined the server " + server.name);
+			}
+
+			var invite = compileArgs(args);
+
+			if (!invite) {
+				_sendMessage(bot, msg.channel, "You have to provide an invite.");
+				return;
+			}
+
+			bot.joinServer(invite, callback);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"leaveServer": {
+		usage: "[server]",
+		help: "Leave the given, or current, server.",
+		process: function(args, bot, msg) {
+			function callback(error) {
+				if (error) {
+					console.log("Error: " + error);
+					_sendMessage(bot, msg.channel, "I was unable to leave the server " + server);
+					return;
+				}
+
+				_sendMessage(bot, msg.channel, "Successfully left the server " + serverObject.name);
+			}
+
+			var server = compileArgs(args);
+			var serverObject;
+
+			if (!server) {
+				serverObject = msg.server;
+			} else {
+				serverObject = getServer(bot, server);
+
+				if (!serverObject) {
+					serverObject = getServerByName(bot, server);
+				}
+			}
+
+			if (!serverObject) {
+				_sendMessage(bot, msg.channel, "Cannot find the server " + server);
+				return;
+			}
+
+			bot.leaveServer(serverObject, callback);
+		},
+		permissions: [
+			"administrator"
+		]
 	},
 	"getUntaggedUsers": {
 		help: "Get a list of untagged users.",
