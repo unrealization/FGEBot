@@ -3,7 +3,7 @@ var config = require('./config.js');
 var edsm = require('./edsm.js');
 var edmaterializer = require("./edmaterializer.js");
 
-const VERSION = "FGEBot Version 0.3.2-JTJ16.6";
+const VERSION = "FGEBot Version 0.3.2-JTJ17";
 
 var options = {
 	autoReconnect: 1
@@ -39,10 +39,13 @@ var dynamicDefaultConfig = {
 	"NAME_SEPARATOR": ":",
 	"RESPOND_TO_COMMANDS": 1,
 	"RESPOND_TO_MENTIONS": 1,
+	"IGNORE_USERS": [
+	],
 	"IGNORE_CHANNELS": [
 	],
 	"RATSIGNAL_CONTACT_ROLE": "",
 	"RATSIGNAL_EMERGENCY_CHANNEL": "",
+	"RATSIGNAL_FUEL_PROCEDURE_LINK": "",
 	"TRILATERATION_CONTACT_ROLE": "",
 	"EDSM_ENABLE_SUBMISSION": 0,
 	"EDSM_SUBMIT_ROLE": "",
@@ -62,7 +65,8 @@ try {
 }
 
 function updateMessagebox(){
-	require("fs").writeFile("./messagebox.json",JSON.stringify(messagebox,null,2), null);
+	//require("fs").writeFile("./messagebox.json",JSON.stringify(messagebox,null,2), null);
+	require("fs").writeFile("./messagebox.json",JSON.stringify(messagebox,null,2));
 }
 
 var edsmMappings;
@@ -85,20 +89,44 @@ function getEdsmUser(user) {
 	}
 }
 
-function allowSubmission(user, message) {
-	if (!config.EDSM_SUBMIT_ROLES || config.EDSM_SUBMIT_ROLES.length == 0) {
+function allowSubmission(bot, server, user) {
+	if (!server) {
+		return 0;
+	}
+
+	var edsmEnableSubmission = getConfigValue(server, "EDSM_ENABLE_SUBMISSION");
+
+	if (!edsmEnableSubmission) {
+		return 0;
+	}
+
+	var edsmSubmitRole = getConfigValue(server, "EDSM_SUBMIT_ROLE");
+
+	if (!edsmSubmitRole) {
 		return 1;
 	}
 
-	var userRoles = message.server.rolesOfUser(user);
+	var serverRole = getRole(server, edsmSubmitRole);
 
-	for (var index=0; index<userRoles.length; index++) {
-		if (config.EDSM_SUBMIT_ROLES.indexOf(userRoles[index].name.toLowerCase()) > -1) {
-			return 1;
+	if (!serverRole) {
+		return 0;
+	}
+
+	if (!bot.memberHasRole(user, serverRole)) {
+		return 0;
+	}
+
+	var edsmSubmitRequireUser = getConfigValue(server, "EDSM_SUBMIT_REQUIRE_USER");
+
+	if (edsmSubmitRequireUser) {
+		var edsmUser = getEdsmUser(user);
+
+		if (!edsmUser) {
+			return 0;
 		}
 	}
 
-	return 0;
+	return 1;
 }
 
 function updateDynamicConfig() {
@@ -595,7 +623,12 @@ var commands = {
 			bot.sendMessage(channel, output, {}, callback);
 
 			output = msg.author.mention() + ", a rat signal has been sent.\n";
-			output += "Stay calm and refer to the Emergency Fuel Procedures detailled here: https://docs.google.com/document/d/1IuzDbJ0GBvrjStwytKiks2OwJcS9OMUdouExVQsDVlo/edit?usp=drive_web\n";
+
+			var ratsignalFuelProcedureLink = getConfigValue(msg.server, "RATSIGNAL_FUEL_PROCEDURE_LINK");
+
+			if (ratsignalFuelProcedureLink) {
+				output += "Stay calm and refer to the Emergency Fuel Procedures detailled here: " + ratsignalFuelProcedureLink + "\n";
+			}
 
 			if (msg.channel.id != channel.id) {
 				output += "Move to " + channel.mention() + " and wait for your rescue.";
@@ -931,7 +964,9 @@ var commands = {
 			var message = serverRole.mention() + "\n";
 			message += msg.author + " is asking for your help to trilaterate the system " + system + ".\n";
 
-			if (config.EDSM_ENABLE_SUBMISSION == 1) {
+			var edsmEnableSubmission = getConfigValue(msg.server, "EDSM_ENABLE_SUBMISSION");
+
+			if (edsmEnableSubmission == 1) {
 				var commandPrefix = getConfigValue(msg.server, "COMMAND_PREFIX");
 				message += "Please submit your distances using the " + commandPrefix + "submit command if you are permitted to do so.";
 			}
@@ -943,12 +978,7 @@ var commands = {
 		usage: "<targetSystem> #NAME_SEPARATOR# <yourSystem> <distance>",
 		help: "Submit the distance to the given system.",
 		process: function(args, bot, msg) {
-			if (config.EDSM_ENABLE_SUBMISSION != 1) {
-				_sendMessage(bot, msg.channel, "Distance submission is currently disabled.");
-				return;
-			}
-
-			if (!allowSubmission(msg.author, msg)) {
+			if (!allowSubmission(bot, msg.server, msg.author)) {
 				_sendMessage(bot, msg.channel, "You are not allowed to submit distances.");
 				return;
 			}
@@ -972,7 +1002,7 @@ var commands = {
 			var targetSystem = systems[0].trim();
 			var referenceSystem = systems[1].trim();
 			var edsmUser = getEdsmUser(msg.author);
-			edsm.submitDistance(targetSystem, referenceSystem, distance, edsmUser, bot, msg);
+			//edsm.submitDistance(targetSystem, referenceSystem, distance, edsmUser, bot, msg);
 		}
 	},
 	"getStars": {
@@ -1284,6 +1314,120 @@ var commands = {
 			"administrator"
 		]
 	},
+	"getIgnoredUsers": {
+		help: "Get the list of ignored users on this server.",
+		process: function(args, bot, msg) {
+			var ignoredUsers = getConfigValue(msg.server, "IGNORE_USERS");
+
+			if (ignoredUsers.length == 0) {
+				_sendMessage(bot, msg.channel, "No users are being ignored.");
+				return;
+			}
+
+			var userNames = [];
+
+			for (var ignoredUserIndex=0; ignoredUserIndex<ignoredUsers.length; ignoredUserIndex++) {
+				var added = 0;
+
+				for (var serverUserIndex=0; serverUserIndex<msg.server.members.length; serverUserIndex++) {
+					if (ignoredUsers[ignoredUserIndex] == msg.server.members[serverUserIndex].id) {
+						userNames.push(msg.server.members[serverUserIndex].name);
+						added = 1;
+						break;
+					}
+				}
+
+				if (!added) {
+					userNames.push("Unknown user id: " + ignoredUsers[ignoredUserIndex]);
+				}
+			}
+
+			var output = "The following users are being ignored by this bot:\n\t";
+			output += userNames.join("\n\t");
+
+			_sendMessage(bot, msg.channel, output);
+		},
+		permissions: [
+			"administrator",
+		]
+	},
+	"addIgnoredUser": {
+		usage: "<user>",
+		help: "Add a user the bot should ignore.",
+		process: function(args, bot, msg) {
+			var user = compileArgs(args);
+
+			if (!user) {
+				_sendMessage(bot, msg.channel, "You must specify the user the bot should ignore.");
+				return;
+			}
+
+			var serverUser = getUserByName(msg.server, user);
+
+			if (!serverUser) {
+				_sendMessage(bot, msg.channel, "Cannot find the user " + user);
+				return;
+			}
+
+			var ignoredUsers = getConfigValue(msg.server, "IGNORE_USERS");
+
+			if (ignoredUsers.indexOf(serverUser.id) > -1) {
+				_sendMessage(bot, msg.channel, "I already ignore the user " + serverUser.name);
+				return;
+			}
+
+			ignoredUsers.push(serverUser.id);
+
+			if (!setConfigValue(msg.server, "IGNORE_USERS", ignoredUsers)) {
+				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+				return;
+			}
+
+			_sendMessage(bot, msg.channel, "User " + serverUser.name + " will now be ignored.");
+		},
+		permissions: [
+			"administrator",
+		]
+	},
+	"removeIgnoredUser": {
+		usage: "<user>",
+		help: "Remove a user from the ignore list.",
+		process: function(args, bot, msg) {
+			var user = compileArgs(args);
+
+			if (!user) {
+				_sendMessage(bot, msg.channel, "You need to specify the user you want me to stop ignoring.");
+				return;
+			}
+
+			var serverUser = getUserByName(msg.server, user);
+
+			if (!serverUser) {
+				_sendMessage(bot, msg.channel, "Cannot find the user " + user);
+				return;
+			}
+
+			var ignoredUsers = getConfigValue(msg.server, "IGNORE_USERS");
+			var userIndex = ignoredUsers.indexOf(serverUser.id);
+
+			if (userIndex == -1) {
+				_sendMessage(bot, msg.channel, "I do not ignore the user " + serverUser.name);
+				return;
+			}
+
+			ignoredUsers.splice(userIndex,1);
+
+			if (!setConfigValue(msg.server, "IGNORE_USERS", ignoredUsers)) {
+				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+				return;
+			}
+
+			_sendMessage(bot, msg.channel, "User " + serverUser.name + " will no longer be ignored.");
+		},
+		permissions: [
+			"administrator",
+		]
+	},
 	"getIgnoredChannels": {
 		help: "Get the list of ignored channels on this server.",
 		process: function(args, bot, msg) {
@@ -1511,6 +1655,49 @@ var commands = {
 			"administrator"
 		]
 	},
+	"getRatsignalFuelProcedureLink": {
+		help: "Get the current ratsignal fuel procedure link.",
+		process: function(args, bot, msg) {
+			var ratsignalFuelProcedureLink = getConfigValue(msg.server, "RATSIGNAL_FUEL_PROCEDURE_LINK");
+
+			if (!ratsignalFuelProcedureLink) {
+				_sendMessage(bot, msg.channel, "No ratsignal fuel procedure link has been set.");
+				return;
+			}
+
+			_sendMessage(bot, msg.channel, "The ratsignal fuel procedure link is: " + ratsignalFuelProcedureLink);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"setRatsignalFuelProcedureLink": {
+		usage: "[link]",
+		help: "Sets a link, or none, as the link commanders will be sent for emergency fuel procedures in case of a ratsignal.",
+		process: function(args, bot, msg) {
+			var link = compileArgs(args);
+
+			if (!link) {
+				if (!setConfigValue(msg.server, "RATSIGNAL_FUEL_PROCEDURE_LINK", "")) {
+					_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+					return;
+				}
+
+				_sendMessage(bot, msg.channel, "The ratsignal fuel procedure link has been cleared.");
+				return;
+			}
+
+			if (!setConfigValue(msg.server, "RATSIGNAL_FUEL_PROCEDURE_LINK", link)) {
+				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+				return;
+			}
+
+			_sendMessage(bot, msg.channel, "The ratsignal fuel procedure link has been set to " + link);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
 	"getTrilaterationContactRole": {
 		help: "Get the role that will be contacted in case of trilateration requests.",
 		process: function(args, bot, msg) {
@@ -1578,7 +1765,7 @@ var commands = {
 				return;
 			}
 
-			_sendMessage(bot, msg.channel, "The does allows distance submissions to EDSM.");
+			_sendMessage(bot, msg.channel, "The bot allows distance submissions to EDSM.");
 		},
 		permissions: [
 			"administrator"
@@ -1601,7 +1788,7 @@ var commands = {
 			}
 
 			if (edsmEnableSubmission == 0) {
-				_sendMessage(bot, msg.channel, "The botwill now no longer allow distance submissions to EDSM.");
+				_sendMessage(bot, msg.channel, "The bot will now no longer allow distance submissions to EDSM.");
 				return;
 			}
 
@@ -1671,15 +1858,14 @@ var commands = {
 	"getEdsmSubmitRequireUser": {
 		help: "See if EDSM user registration is required to submit distances.",
 		process: function(args, bot, msg) {
-			//
-			var edsmEnableSubmission = getConfigValue(msg.server, "EDSM_ENABLE_SUBMISSION");
+			var edsmSubmitRequireUser = getConfigValue(msg.server, "EDSM_SUBMIT_REQUIRE_USER");
 
-			if (!edsmEnableSubmission) {
-				_sendMessage(bot, msg.channel, "The bot does not allow distance submissions to EDSM.");
+			if (!edsmSubmitRequireUser) {
+				_sendMessage(bot, msg.channel, "The bot does not require EDSM user registration to allow distance submission to EDSM.");
 				return;
 			}
 
-			_sendMessage(bot, msg.channel, "The does allows distance submissions to EDSM.");
+			_sendMessage(bot, msg.channel, "The bot does require EDSM user registration to allow distance submissions to EDSM.");
 		},
 		permissions: [
 			"administrator"
@@ -1689,25 +1875,24 @@ var commands = {
 		usage: "<1|0>",
 		help: "Set whether or not EDSM user registration is required to submit distances.",
 		process: function(args, bot, msg) {
-			//
-			var edsmEnableSubmission = Number(compileArgs(args));
+			var edsmSubmitRequireUser = Number(compileArgs(args));
 
-			if (edsmEnableSubmission != 0 && edsmEnableSubmission != 1) {
+			if (edsmSubmitRequireUser != 0 && edsmSubmitRequireUser != 1) {
 				_sendMessage(bot, msg.channel, "Invalid value.");
 				return;
 			}
 
-			if (!setConfigValue(msg.server, "EDSM_ENABLE_SUBMISSION", edsmEnableSubmission)) {
+			if (!setConfigValue(msg.server, "EDSM_SUBMIT_REQUIRE_USER", edsmSubmitRequireUser)) {
 				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
 				return;
 			}
 
-			if (edsmEnableSubmission == 0) {
-				_sendMessage(bot, msg.channel, "The botwill now no longer allow distance submissions to EDSM.");
+			if (edsmSubmitRequireUser == 0) {
+				_sendMessage(bot, msg.channel, "The bot will no longer require EDSM user registration to allow distance submissions to EDSM.");
 				return;
 			}
 
-			_sendMessage(bot, msg.channel, "The bot will from now on allow distance submissions to EDSM.");
+			_sendMessage(bot, msg.channel, "The bot will from now on require EDSM user registration to allow distance submissions to EDSM.");
 		},
 		permissions: [
 			"administrator"
@@ -1749,6 +1934,16 @@ function handleMessage(message) {
 
 	if (!config.RESPOND_TO_PRIVATEMESSAGES && message.channel.isPrivate) {
 		return;
+	}
+
+	var ignoredUsers = getConfigValue(message.server, "IGNORE_USERS");
+
+	if (ignoredUsers.length > 0) {
+		var index = ignoredUsers.indexOf(message.author.id);
+
+		if (index > -1) {
+			return;
+		}
 	}
 
 	var ignoredChannels = getConfigValue(message.server, "IGNORE_CHANNELS");
@@ -1832,19 +2027,32 @@ function handleMessage(message) {
 	}
 }
 
-function handleUserStatusChange(user, status, gameId) {
-	try {
-		if (status != "offline") {
-			if (messagebox.hasOwnProperty(user.id)) {
-				console.log("Found a message for " + user.id);
-				var message = messagebox[user.id];
-				var channel = FGEBot.channels.get("id", message.channel);
-				delete messagebox[user.id];
-				updateMessagebox();
-				_sendMessage(FGEBot, channel, message.content);
-			}
+function handleUserStatusChange(oldUser, newUser) {
+	/*if (oldUser && oldUser.game) {
+		console.log("Old: " + oldUser.game.name);
+	}
+
+	if (newUser && newUser.game) {
+		console.log("New: " + newUser.game.name);
+	}
+
+	if (!oldUser.game && newUser.game) {
+		console.log(newUser.name + " has started playing " + newUser.game.name);
+	}
+
+	if (oldUser.game && !newUser.game) {
+		console.log(newUser.name + " has stopped playing " + oldUser.game.name);
+	}*/
+
+	if (newUser.status != "offline") {
+		if (messagebox.hasOwnProperty(newUser.id)) {
+			console.log("Found a message for " + newUser.id);
+			var message = messagebox[user.id];
+			var channel = FGEBot.channels.get("id", message.channel);
+			delete messagebox[user.id];
+			updateMessagebox();
+			_sendMessage(FGEBot, channel, message.content);
 		}
-	} catch(e) {
 	}
 }
 
@@ -1862,9 +2070,20 @@ function handleDisconnect() {
 	console.log("Disconnected.");
 }
 
+function handleNewMember(server, user) {
+	console.log("New user " + user.name + " on server " + server.name);
+}
+
+function handleMemberRemoved(server, user) {
+	console.log(user.name + " has left the server " + server.name + " or has been removed.");
+}
+
 FGEBot.on("message", handleMessage);
-FGEBot.on("presense", handleUserStatusChange);
+FGEBot.on("presence", handleUserStatusChange);
 FGEBot.on("disconnected", handleDisconnect);
+FGEBot.on("serverNewMember", handleNewMember);
+FGEBot.on("serverMemberRemoved", handleMemberRemoved);
+
 FGEBot.login(config.LOGIN, config.PASSWORD, handleLogin);
 
 if (config.USE_TRELLO) {
