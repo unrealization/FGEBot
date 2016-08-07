@@ -3,7 +3,7 @@ var config = require('./config.js');
 var edsm = require('./edsm.js');
 var edmaterializer = require("./edmaterializer.js");
 
-const VERSION = "FGEBot Version 0.3.2-JTJ17";
+const VERSION = "FGEBot Version 0.3.2-JTJ17.1";
 
 var options = {
 	autoReconnect: 1
@@ -320,7 +320,9 @@ function getUserByName(server, user) {
 	var serverUsers = server.members;
 
 	for (var x=0; x<serverUsers.length; x++) {
-		if (serverUsers[x].name == user || serverUsers[x].mention() == user) {
+		var renamedMention = getUserMentionRenamed(serverUsers[x]);
+
+		if (serverUsers[x].name == user || serverUsers[x].mention() == user || renamedMention == user) {
 			return serverUsers[x];
 		}
 	}
@@ -369,6 +371,11 @@ function roleIsManageable(bot, channel, roleId) {
 	}
 
 	return 0;
+}
+
+function getUserMentionRenamed(user) {
+	var output = "<@!" + user.id + ">";
+	return output;
 }
 
 var compileArgs = function(args) {
@@ -1962,8 +1969,8 @@ function handleMessage(message) {
 	var respondToMentions = getConfigValue(message.server, "RESPOND_TO_MENTIONS");
 
 	if (respondToMentions) {
-		var mentionString = "<@" + FGEBot.user.id + ">";
-		var mentionStringRenamed = "<@!" + FGEBot.user.id + ">";
+		var mentionString = FGEBot.user.mention();
+		var mentionStringRenamed = getUserMentionRenamed(FGEBot.user);
 
 		if (message.content.startsWith(mentionString) || message.content.startsWith(mentionStringRenamed)) {
 			processed = 1;
