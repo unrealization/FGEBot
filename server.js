@@ -1176,7 +1176,7 @@ var commands = {
 		process: function(args, bot, msg) {
 			var respondToCommands = getConfigValue(msg.server, "RESPOND_TO_COMMANDS");
 
-			if (!respondToCommands) {
+			if (respondToCommands == 0) {
 				_sendMessage(bot, msg.channel, "The bot does not respond to commands.");
 				return;
 			}
@@ -1219,7 +1219,7 @@ var commands = {
 		process: function(args, bot, msg) {
 			var respondToMentions = getConfigValue(msg.server, "RESPOND_TO_MENTIONS");
 
-			if (!respondToMentions) {
+			if (respondToMentions == 0) {
 				_sendMessage(bot, msg.channel, "The bot does not respond to mentions.");
 				return;
 			}
@@ -1968,7 +1968,7 @@ function handleMessage(message) {
 	var respondToCommands = getConfigValue(message.server, "RESPOND_TO_COMMANDS");
 	var respondToMentions = getConfigValue(message.server, "RESPOND_TO_MENTIONS");
 
-	if (respondToMentions) {
+	if (respondToMentions == 1) {
 		var mentionString = FGEBot.user.mention();
 		var mentionStringRenamed = getUserMentionRenamed(FGEBot.user);
 
@@ -1987,7 +1987,7 @@ function handleMessage(message) {
 
 	var commandPrefix = getConfigValue(message.server, "COMMAND_PREFIX");
 
-	if (!processed && respondToCommands && message.content.startsWith(commandPrefix)) {
+	if (!processed && respondToCommands == 1 && message.content.startsWith(commandPrefix)) {
 		processed = 1;
 		messageContent = message.content.substr(commandPrefix.length);
 	}
