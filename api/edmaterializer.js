@@ -244,11 +244,11 @@ function getWorlds(system, bot, message) {
 }
 
 function setUseBetaServer(useBeta) {
-	if (useBeta == 0) {
+	/*if (useBeta == 0) {
 		console.log("ED Materializer: Using the Live Server");
 	} else {
 		console.log("ED Materializer: Using the Beta Server");
-	}
+	}*/
 
 	useBetaServer = useBeta;
 }

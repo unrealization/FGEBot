@@ -772,11 +772,11 @@ function locateCommander(commander, bot, message) {
 }
 
 function setUseBetaServer(useBeta) {
-	if (useBeta == 0) {
+	/*if (useBeta == 0) {
 		console.log("EDSM: Using the Live Server");
 	} else {
 		console.log("EDSM: Using the Beta Server");
-	}
+	}*/
 
 	useBetaServer = useBeta;
 }

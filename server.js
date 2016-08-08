@@ -1,9 +1,11 @@
 var Discord = require("discord.js");
 var config = require('./config.js');
-var edsm = require('./edsm.js');
-var edmaterializer = require("./edmaterializer.js");
 
-const VERSION = "FGEBot Version 0.3.2-JTJ17.2";
+var botFunctions = require("./bot_functions.js");
+
+const VERSION = "Jeeves 1.0";
+
+botFunctions.loadModules();
 
 var options = {
 	autoReconnect: 1
@@ -12,48 +14,6 @@ var options = {
 var FGEBot = new Discord.Client(options);
 
 var startTime = Date.now();
-
-var enumerate = function(obj) {
-	var key;
-
-	for (key in obj) {
-		if (typeof obj[key] !== 'function') {
-			console.log(key + ": " + obj[key]);
-		}
-	}
-}
-
-var dynamicConfig;
-
-try {
-	dynamicConfig = require("./dynamicConfig.json");
-} catch(e) {
-	dynamicConfig = {
-		"servers": {
-		}
-	}
-}
-
-var dynamicDefaultConfig = {
-	"COMMAND_PREFIX": "!",
-	"NAME_SEPARATOR": ":",
-	"RESPOND_TO_COMMANDS": 1,
-	"RESPOND_TO_MENTIONS": 1,
-	"IGNORE_USERS": [
-	],
-	"IGNORE_CHANNELS": [
-	],
-	"RATSIGNAL_CONTACT_ROLE": "",
-	"RATSIGNAL_EMERGENCY_CHANNEL": "",
-	"RATSIGNAL_FUEL_PROCEDURE_LINK": "",
-	"TRILATERATION_CONTACT_ROLE": "",
-	"EDSM_ENABLE_SUBMISSION": 0,
-	"EDSM_SUBMIT_ROLE": "",
-	"EDSM_SUBMIT_REQUIRE_USER": 1
-};
-
-edsm.setUseBetaServer(config.EDSM_USE_BETASERVER);
-edmaterializer.setUseBetaServer(config.EDMATERIALIZER_USE_BETASERVER);
 
 var messagebox;
 
@@ -69,271 +29,10 @@ function updateMessagebox(){
 	require("fs").writeFile("./messagebox.json",JSON.stringify(messagebox,null,2));
 }
 
-var edsmMappings;
-
-try {
-	edsmMappings = require("./edsmMappings.json");
-} catch(e) {
-	edsmMappings = {};
-}
-
-function updateEdsmMappings() {
-	require("fs").writeFile("./edsmMappings.json", JSON.stringify(edsmMappings, null, 2));
-}
-
-function getEdsmUser(user) {
-	if (!edsmMappings[user]) {
-		return null;
-	} else {
-		return edsmMappings[user];
-	}
-}
-
-function allowSubmission(bot, server, user) {
-	if (!server) {
-		return 0;
-	}
-
-	var edsmEnableSubmission = getConfigValue(server, "EDSM_ENABLE_SUBMISSION");
-
-	if (!edsmEnableSubmission) {
-		return 0;
-	}
-
-	var edsmSubmitRole = getConfigValue(server, "EDSM_SUBMIT_ROLE");
-
-	if (!edsmSubmitRole) {
-		return 1;
-	}
-
-	var serverRole = getRole(server, edsmSubmitRole);
-
-	if (!serverRole) {
-		return 0;
-	}
-
-	if (!bot.memberHasRole(user, serverRole)) {
-		return 0;
-	}
-
-	var edsmSubmitRequireUser = getConfigValue(server, "EDSM_SUBMIT_REQUIRE_USER");
-
-	if (edsmSubmitRequireUser) {
-		var edsmUser = getEdsmUser(user);
-
-		if (!edsmUser) {
-			return 0;
-		}
-	}
-
-	return 1;
-}
-
-function updateDynamicConfig() {
-	require("fs").writeFile("./dynamicConfig.json", JSON.stringify(dynamicConfig, null, 2));
-}
-
-function getConfigValue(server, option) {
-	var activeConfig;
-
-	if (server) {
-		if (!dynamicConfig["servers"][server.id]) {
-			console.log("Creating default config for server " + server.name);
-			dynamicConfig["servers"][server.id] = dynamicDefaultConfig;
-			updateDynamicConfig();
-		}
-
-		activeConfig = dynamicConfig["servers"][server.id];
-	} else {
-		activeConfig = dynamicDefaultConfig;
-	}
-
-	return activeConfig[option];
-}
-
-function setConfigValue(server, option, value) {
-	if (!server) {
-		return 0;
-	}
-
-	dynamicConfig["servers"][server.id][option] = value;
-	updateDynamicConfig();
-	return 1;
-}
-
-function _sendMessage(bot, channel, message) {
-	function messageHandler(error, message) {
-		if (parts.length == 0) {
-			return;
-		}
-
-		var output = parts.shift();
-		bot.sendMessage(channel, output, {}, messageHandler);
-	}
-
-	if (message.length < 1500) {
-		bot.sendMessage(channel, message);
-		return;
-	}
-
-	var lines = message.split("\n");
-	var parts = [];
-	var output = "";
-
-	for (var index=0; index<lines.length; index++) {
-		if (output.length + lines[index].length < 1400) {
-			output += lines[index] + "\n";
-		} else {
-			parts.push(output);
-			output = lines[index] + "\n";
-		}
-	}
-
-	if (output != "") {
-		parts.push(output);
-	}
-
-	if (parts.length > 0) {
-		output = parts.shift();
-		bot.sendMessage(channel, output, {}, messageHandler);
-	}
-}
-
-function checkPermission(channel, user, permission) {
-	if (channel.isPrivate) {
-		return false;
-	}
-
-	var userPermissions = channel.permissionsOf(user);
-	return userPermissions.hasPermission(permission);
-}
-
-function getServer(bot, serverId) {
-	var serverList = bot.servers;
-
-	for (var x=0; x<serverList.length; x++) {
-		if (serverList[x].id == serverId) {
-			return serverList[x];
-		}
-	}
-
-	return null;
-}
-
-function getServerByName(bot, server) {
-	var serverList = bot.servers;
-
-	for (var x=0; x<serverList.length; x++) {
-		if (serverList[x].name == server) {
-			return serverList[x];
-		}
-	}
-
-	return null;
-}
-
-function getChannel(server, channelId) {
-	if (!server) {
-		return null;
-	}
-
-	var serverChannels = server.channels;
-
-	for (var x=0; x<serverChannels.length; x++) {
-		if (serverChannels[x].id == channelId) {
-			return serverChannels[x];
-		}
-	}
-
-	return null;
-}
-
-function getChannelByName(server, channel) {
-	if (!server) {
-		return null;
-	}
-
-	var serverChannels = server.channels;
-
-	for (var x=0; x<serverChannels.length; x++) {
-		if (serverChannels[x].name == channel || serverChannels[x].mention() == channel) {
-			return serverChannels[x];
-		}
-	}
-
-	return null;
-}
-
-function getRole(server, roleId) {
-	if (!server) {
-		return null;
-	}
-
-	var serverRoles = server.roles;
-
-	for (var x=0; x<serverRoles.length; x++) {
-		if (serverRoles[x].id == roleId) {
-			return serverRoles[x];
-		}
-	}
-
-	return null;
-}
-
-function getRoleByName(server, role) {
-	if (!server) {
-		return null;
-	}
-
-	var serverRoles = server.roles;
-
-	for (var x=0; x<serverRoles.length; x++) {
-		if (serverRoles[x].name == role || serverRoles[x].mention() == role) {
-			return serverRoles[x];
-		}
-	}
-
-	return null;
-}
-
-function getUser(server, userId) {
-	if (!server) {
-		return null;
-	}
-
-	var serverUsers = server.members;
-
-	for (var x=0; x<serverUsers.length; x++) {
-		if (serverUsers[x].id == userId) {
-			return serverUsers[x];
-		}
-	}
-
-	return null;
-}
-
-function getUserByName(server, user) {
-	if (!server) {
-		return null;
-	}
-
-	var serverUsers = server.members;
-
-	for (var x=0; x<serverUsers.length; x++) {
-		var renamedMention = getUserMentionRenamed(serverUsers[x]);
-
-		if (serverUsers[x].name == user || serverUsers[x].mention() == user || renamedMention == user) {
-			return serverUsers[x];
-		}
-	}
-
-	return null;
-}
-
 function getManageableRoles(bot, channel) {
 	var manageableRoles = [];
 
-	if (!checkPermission(channel, bot.user, "manageRoles")) {
+	if (!botFunctions.checkPermission(channel, bot.user, "manageRoles")) {
 		return manageableRoles;
 	}
 
@@ -378,19 +77,14 @@ function getUserMentionRenamed(user) {
 	return output;
 }
 
-var compileArgs = function(args) {
-	args.splice(0,1);
-	return args.join(" ");
-}
-
 var commands = {
 	"ping": {
 		help: "Returns pong. Useful for determining if the bot is alive.",
-		process: function(args, bot, message) { _sendMessage(bot, message.channel, "Pong!"); }
+		process: function(args, bot, message) { botFunctions.sendMessage(bot, message.channel, "Pong!"); }
 	},
 	"version": {
 		help: "Display version information for this bot.",
-		process: function(args, bot, message) { _sendMessage(bot, message.channel, VERSION); }
+		process: function(args, bot, message) { botFunctions.sendMessage(bot, message.channel, VERSION); }
 	},
 	"uptime": {
 		help: "Returns the amount of time since the bot started",
@@ -423,7 +117,7 @@ var commands = {
 				timestr += secs + " seconds ";
 			}
 
-			_sendMessage(bot, msg.channel,"Uptime: " + timestr);
+			botFunctions.sendMessage(bot, msg.channel,"Uptime: " + timestr);
 		}
 	},
 	"msg": {
@@ -449,7 +143,7 @@ var commands = {
 			};
 
 			updateMessagebox();
-			_sendMessage(bot, msg.channel, "Message saved.")
+			botFunctions.sendMessage(bot, msg.channel, "Message saved.")
 		}
 	},
 	"roles": {
@@ -458,7 +152,7 @@ var commands = {
 			var publicRoles = getManageableRoles(bot, msg.channel);
 
 			if (publicRoles.length == 0) {
-				_sendMessage(bot, msg.channel, "I am not allowed to manage any roles.");
+				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage any roles.");
 				return;
 			}
 
@@ -468,11 +162,11 @@ var commands = {
 				roleNames.push(publicRoles[x].name);
 			}
 
-			var commandPrefix = getConfigValue(msg.server, "COMMAND_PREFIX");
+			var commandPrefix = botFunctions.getConfigValue(msg.server, "COMMAND_PREFIX");
 			var output = "The following roles can be managed by the bot using the " + commandPrefix + "join and " + commandPrefix + "leave commands:\n";
 			output += "\t" + roleNames.join("\n\t");
 
-			_sendMessage(bot, msg.channel, output);
+			botFunctions.sendMessage(bot, msg.channel, output);
 		}
 	},
 	"join": {
@@ -482,27 +176,27 @@ var commands = {
 			function roleHandler(error) {
 				if (error) {
 					console.log("Error: " + error);
-					_sendMessage(bot, msg.channel, "I may have not permission to assign this role.");
+					botFunctions.sendMessage(bot, msg.channel, "I may have not permission to assign this role.");
 				} else {
-					_sendMessage(bot, msg.channel, "Done.");
+					botFunctions.sendMessage(bot, msg.channel, "Done.");
 				}
 			}
 
-			var roleName = compileArgs(args);
-			var role = getRoleByName(msg.server, roleName);
+			var roleName = botFunctions.compileArgs(args);
+			var role = botFunctions.getRoleByName(msg.server, roleName);
 
 			if (!role) {
-				_sendMessage(bot, msg.channel, "The role " + roleName + " is unknown on this server.");
+				botFunctions.sendMessage(bot, msg.channel, "The role " + roleName + " is unknown on this server.");
 				return;
 			}
 
 			if (!roleIsManageable(bot, msg.channel, role.id)) {
-				_sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
+				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
 				return;
 			}
 
 			if (bot.memberHasRole(msg.author, role)) {
-				_sendMessage(bot, msg.channel, "You already have the role " + roleName + ".");
+				botFunctions.sendMessage(bot, msg.channel, "You already have the role " + roleName + ".");
 				return;
 			}
 
@@ -520,27 +214,27 @@ var commands = {
 			function roleHandler(error) {
 				if (error) {
 					console.log("Error: " + error);
-					_sendMessage(bot, msg.channel, "I may have not permission to assign this role.");
+					botFunctions.sendMessage(bot, msg.channel, "I may have not permission to assign this role.");
 				} else {
-					_sendMessage(bot, msg.channel, "Done.");
+					botFunctions.sendMessage(bot, msg.channel, "Done.");
 				}
 			}
 
-			var roleName = compileArgs(args);
-			var role = getRoleByName(msg.server, roleName);
+			var roleName = botFunctions.compileArgs(args);
+			var role = botFunctions.getRoleByName(msg.server, roleName);
 
 			if (!role) {
-				_sendMessage(bot, msg.channel, "The role " + roleName + " is unknown on this server.");
+				botFunctions.sendMessage(bot, msg.channel, "The role " + roleName + " is unknown on this server.");
 				return;
 			}
 
 			if (!roleIsManageable(bot, msg.channel, role.id)) {
-				_sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
+				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
 				return;
 			}
 
 			if (!bot.memberHasRole(msg.author, role)) {
-				_sendMessage(bot, msg.channel, "You do not have the role " + roleName + ".");
+				botFunctions.sendMessage(bot, msg.channel, "You do not have the role " + roleName + ".");
 				return;
 			}
 
@@ -555,24 +249,25 @@ var commands = {
 		usage: "<role>",
 		help: "Get the list of users that have the given role.",
 		process: function(args, bot, msg) {
-			var roleName = compileArgs(args);
+			var roleName = botFunctions.compileArgs(args);
 			var publicRoles = getManageableRoles(bot, msg.channel);
-			var role = getRoleByName(msg.server, roleName);
+			var role = botFunctions.getRoleByName(msg.server, roleName);
 
 			if (!role) {
-				_sendMessage(bot, msg.channel, "The role " + roleName + " is unknown on this server.");
+				botFunctions.sendMessage(bot, msg.channel, "The role " + roleName + " is unknown on this server.");
 				return;
 			}
 
 			if (!roleIsManageable(bot, msg.channel, role.id)) {
-				_sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
+				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
 				return;
 			}
 
 			var members = msg.server.usersWithRole(role);
 
 			if (members.length == 0) {
-				_sendMessage(bot, msg.channel, "The role " + role.name + " has no members.");
+				botFunctions.sendMessage(bot, msg.channel, "The role " + role.name + " has no members.");
+				return;
 			}
 
 			var output = "The role " + role.name + " has " + members.length + " members:\n";
@@ -581,484 +276,17 @@ var commands = {
 				output += "\t" + members[index].name + "\n";
 			}
 
-			_sendMessage(bot, msg.channel, "List sent as private message.");
-			_sendMessage(bot, msg.author, output);
+			botFunctions.sendMessage(bot, msg.channel, "List sent as private message.");
+			botFunctions.sendMessage(bot, msg.author, output);
 		}
 	},
-	"ratsignal": {
-		help: "Send an emergency call to the Fuel Rats",
-		process: function(args, bot, msg) {
-			function callback(error, message) {
-				var edsmUser = getEdsmUser(msg.author);
-
-				if (edsmUser) {
-//					edsm.getCommanderCoordinates(edsmUser, bot, message);
-				}
-			}
-
-			var ratsignalContactRole = getConfigValue(msg.server, "RATSIGNAL_CONTACT_ROLE");
-
-			if (!ratsignalContactRole) {
-				_sendMessage(bot, msg.channel, "Sadly there is nobody here to help you.");
-				return;
-			}
-
-			var role = getRole(msg.server, ratsignalContactRole);
-
-			if (!role) {
-				_sendMessage(bot, msg.channel, "Sadly there is nobody here to help you.");
-				return;
-			}
-
-			var output = role.mention() + " RAT SIGNAL\n";
-			output += msg.author + " has run out of fuel and is in need of assistance!";
-
-			var channel = msg.channel;
-			var ratsignalEmergencyChannel = getConfigValue(msg.server, "RATSIGNAL_EMERGENCY_CHANNEL");
-
-			if (ratsignalEmergencyChannel) {
-				var serverChannels = msg.server.channels;
-
-				for (var index=0; index<serverChannels.length; index++) {
-					if (serverChannels[index].id == ratsignalEmergencyChannel) {
-						channel = serverChannels[index];
-						break;
-					}
-				}
-			}
-
-			bot.sendMessage(channel, output, {}, callback);
-
-			output = msg.author.mention() + ", a rat signal has been sent.\n";
-
-			var ratsignalFuelProcedureLink = getConfigValue(msg.server, "RATSIGNAL_FUEL_PROCEDURE_LINK");
-
-			if (ratsignalFuelProcedureLink) {
-				output += "Stay calm and refer to the Emergency Fuel Procedures detailled here: " + ratsignalFuelProcedureLink + "\n";
-			}
-
-			if (msg.channel.id != channel.id) {
-				output += "Move to " + channel.mention() + " and wait for your rescue.";
-			}
-
-			_sendMessage(bot, msg.channel, output);
-		}
-	},
-	"edstatus": {
-		help: "Elite: Dangerous Server Status Info",
-		process: function(args, bot, msg) { edsm.getEDStatus(bot, msg); }
-	},
-	"aliases": {
-		help: "Returns the list of supported system aliases",
-		process: function(args,bot,msg) { edsm.listAliases(bot, msg); }
-	},
-	"locate": {
-		usage: "[name]",
-		help: 'Gets the last reported location of a commander',
-		process: function(args, bot, msg) {
-			var commanderName = compileArgs(args);
-
-			if (!commanderName) {
-				var edsmUser = getEdsmUser(msg.author);
-
-				if (!edsmUser) {
-					_sendMessage(bot, msg.channel, "I don't know whom I should locate.");
-					return;
-				}
-
-				commanderName = edsmUser;
-			}
-
-			edsm.locateCommander(commanderName, bot, msg);
-		}
-	},
-	"syscoords": {
-		usage: "<system>",
-		help: 'Gets the galactic coordinates of a system',
-		process: function(args,bot,msg) { edsm.getSystemCoordinates(compileArgs(args), bot, msg); }
-	},
-	"cmdrcoords": {
-		usage: "[name]",
-		help: "Gets the last reported location of a commander, including system coordinates, if they are available",
-		process: function(args, bot, msg) {
-			var commanderName = compileArgs(args);
-
-			if (!commanderName) {
-				var edsmUser = getEdsmUser(msg.author);
-
-				if (!edsmUser) {
-					_sendMessage(bot, msg.channel, "I don't know whom I should locate.");
-					return;
-				}
-
-				commanderName = edsmUser;
-			}
-
-			edsm.getCommanderCoordinates(commanderName, bot, msg);
-		}
-	},
-	"distance": {
-		usage: "<first> #NAME_SEPARATOR# <second>",
-		help: "Gets the distance from one system or commander to another.",
-		process: function(args, bot, msg) {
-			var nameSeparator = getConfigValue(msg.server, "NAME_SEPARATOR");
-			var query = compileArgs(args).split(nameSeparator);
-			var first = query[0].trim();
-
-			if (first == "") {
-				var edsmUser = getEdsmUser(msg.author);
-
-				if (edsmUser) {
-					first = edsmUser;
-				} else {
-					first = "Sol";
-				}
-			}
-
-			var second = null;
-
-			if (query.length == 1) {
-				var edsmUser = getEdsmUser(msg.author);
-
-				if (edsmUser) {
-					second = edsmUser;
-				} else {
-					second = "Sol";
-				}
-			} else {
-				second = query[1].trim();
-			}
-
-			if (first == second) {
-				_sendMessage(bot, msg.channel, first + " = " + second + ", which doesn't really make all that much sense.");
-				return;
-			}
-
-			edsm.getDistance(first, second, bot, msg);
-		}		
-	},
-	"route": {
-		usage: "<origin> #NAME_SEPARATOR# <destination> [r:<range>]",
-		help: "Find a route from one system or commander to another",
-		process : function(args, bot, msg) {
-			var lastArgIndex = args.length-1;
-			var lastArg = args[lastArgIndex];
-			var rangeRegEx = new RegExp('^r:\\d+(\\.\\d{1,2})?$');
-			var range = null;
-			var nameSeparator = getConfigValue(msg.server, "NAME_SEPARATOR");
-
-			if (rangeRegEx.test(lastArg)) {
-				range = lastArg.substr(2);
-				args.pop();
-			}
-
-			var query = compileArgs(args).split(nameSeparator);
-			var first = query[0].trim();
-
-			if (first == "") {
-				var edsmUser = getEdsmUser(msg.author);
-
-				if (edsmUser) {
-					first = edsmUser;
-				} else {
-					first = "Sol";
-				}
-			}
-
-			var second = null;
-
-			if (query.length == 1) {
-				var edsmUser = getEdsmUser(msg.author);
-
-				if (edsmUser) {
-					second = edsmUser;
-				} else {
-					second = "Sol";
-				}
-			} else {
-				second = query[1].trim();
-			}
-
-			if (first == second) {
-				_sendMessage(bot, msg.channel, first + " = " + second + ", which doesn't really make all that much sense.");
-				return;
-			}
-
-			edsm.getRoute(first, second, range, bot, msg);
-		}
-	},
-	"nearby": {
-		usage: "<name> [r:<range>]",
-		help: "Find systems close to a system or commander",
-		process: function(args, bot, msg) {
-			var lastArgIndex = args.length-1;
-			var lastArg = args[lastArgIndex];
-			var rangeRegEx = new RegExp('^r:\\d+(\\.\\d{1,2})?$');
-			var range = null;
-
-			if (rangeRegEx.test(lastArg)) {
-				range = lastArg.substr(2);
-				args.pop();
-			}
-
-			var name = compileArgs(args);
-
-			if (name == "") {
-				var edsmUser = getEdsmUser(msg.author);
-
-				if (edsmUser) {
-					name = edsmUser;
-				} else {
-					name = "Sol";
-				}
-			}
-
-			edsm.getNearbySystems(name, range, bot, msg);
-		}
-	},
-	"nearcoords": {
-		usage: "<x> <y> <z> [r:<range>]",
-		help: "Find systems near the provided coordinates.",
-		process: function(args, bot, msg) {
-			var lastArgIndex = args.length-1;
-			var lastArg = args[lastArgIndex];
-			var rangeRegEx = new RegExp('^r:\\d+(\\.\\d{1,2})?$');
-			var range = null;
-
-			if (rangeRegEx.test(lastArg)) {
-				range = lastArg.substr(2);
-				args.pop();
-			}
-
-			var coords = compileArgs(args).split(" ");
-
-			if (coords.length < 3) {
-				_sendMessage(bot, msg.channel, "Not enough values");
-				return;
-			}
-
-			var x = coords[0].trim();
-			var y = coords[1].trim();
-			var z = coords[2].trim();
-
-			var numRegEx = new RegExp('^(-)?\\d+(\\.\\d{1,2})?$');
-
-			if (!numRegEx.test(x)) {
-				_sendMessage(bot, msg.channel, x + " is not a valid value.");
-				return;
-			}
-
-			if (!numRegEx.test(y)) {
-				_sendMessage(bot, msg.channel, y + " is not a valid value.");
-				return;
-			}
-
-			if (!numRegEx.test(z)) {
-				_sendMessage(bot, msg.channel, z + " is not a valid value.");
-				return;
-			}
-
-			edsm.getNearbySystemsByCoordinates(x, y, z, range, bot, msg);
-		}
-	},
-	"waypoints": {
-		usage: "<origin> #NAME_SEPARATOR# <destination>",
-		help: "Get a list of waypoints between the origin and destination to help in-game plotting.",
-		process: function(args, bot, msg) {
-			var nameSeparator = getConfigValue(msg.server, "NAME_SEPARATOR");
-			var systems = compileArgs(args).split(nameSeparator);
-			var origin = systems[0].trim();
-
-			if (origin == "") {
-				var edsmUser = getEdsmUser(msg.author);
-
-				if (edsmUser) {
-					origin = edsmUser;
-				} else {
-					origin = "Sol";
-				}
-			}
-
-			var destination = "";
-
-			if (systems.length == 1) {
-				var edsmUser = getEdsmUser(msg.author);
-
-				if (edsmUser) {
-					destination = edsmUser;
-				} else {
-					destination = "Sol";
-				}
-			} else {
-				destination = systems[1].trim();
-			}
-
-			if (origin == destination) {
-				_sendMessage(bot, msg.channel, origin + " = " + destination + ", which doesn't really make all that much sense.");
-				return;
-			}
-
-			edsm.getWaypoints(origin, destination, 1000, bot, msg);
-		}
-	},
-	"register": {
-		usage: "<name>",
-		help: "Register a mapping from your Discord user to your EDSM user.",
-		process: function(args, bot, msg) {
-			var edsmUser = compileArgs(args);
-
-			if (!edsmUser) {
-				_sendMessage(bot, msg.channel, "Providing an EDSM username may have been helpful.");
-				return;
-			}
-
-			edsmMappings[msg.author] = edsmUser;
-			updateEdsmMappings();
-			_sendMessage(bot, msg.channel, "Mapping stored.");
-		}
-	},
-	"unregister": {
-		help: "Delete the mapping from your Discord user to your EDSM user.",
-		process: function(args, bot, msg) {
-			if (!edsmMappings[msg.author]) {
-				bot.sendMessage(msg.channel, "No EDSM Username found.");
-			} else {
-				delete edsmMappings[msg.author];
-				updateEdsmMappings();
-				_sendMessage(bot, msg.channel, "Mapping removed.");
-			}
-		}
-	},
-	"getEdsmUser": {
-		usage: "[name]",
-		help: "Get your or the given user's EDSM Username.",
-		process: function(args, bot, msg) {
-			args.shift();
-			var user = args.join(" ");
-
-			if (!user) {
-				user = msg.author;
-			}
-
-			edsmUser = getEdsmUser(user);
-
-			if (!edsmUser) {
-				_sendMessage(bot, msg.channel, "No EDSM Username found for " + user);
-			} else {
-				_sendMessage(bot, msg.channel, edsmUser);
-			}
-		}
-	},
-	"trilaterate": {
-		usage: "<system>",
-		help: "Ask for help to trilaterate a system.",
-		process: function(args, bot, msg) {
-			var system = compileArgs(args);
-			var role = getConfigValue(msg.server, "TRILATERATION_CONTACT_ROLE");
-
-			if (!role) {
-				_sendMessage(bot, msg.channel, "It appears as if there is nobody available to help you with this.");
-				return;
-			}
-
-			var serverRole = getRole(msg.server, role);
-
-			if (!serverRole) {
-				_sendMessage(bot, msg.channel, "It appears as if there is nobody available to help you with this.");
-				return;
-			}
-
-			var message = serverRole.mention() + "\n";
-			message += msg.author + " is asking for your help to trilaterate the system " + system + ".\n";
-
-			var edsmEnableSubmission = getConfigValue(msg.server, "EDSM_ENABLE_SUBMISSION");
-
-			if (edsmEnableSubmission == 1) {
-				var commandPrefix = getConfigValue(msg.server, "COMMAND_PREFIX");
-				message += "Please submit your distances using the " + commandPrefix + "submit command if you are permitted to do so.";
-			}
-
-			_sendMessage(bot, msg.channel, message);
-		}
-	},
-	"submit": {
-		usage: "<targetSystem> #NAME_SEPARATOR# <yourSystem> <distance>",
-		help: "Submit the distance to the given system.",
-		process: function(args, bot, msg) {
-			if (!allowSubmission(bot, msg.server, msg.author)) {
-				_sendMessage(bot, msg.channel, "You are not allowed to submit distances.");
-				return;
-			}
-
-			var distance = args.pop();
-			var distanceRegEx = new RegExp('^\\d+(\\.\\d{1,2})?$');
-
-			if (!distanceRegEx.test(distance)) {
-				_sendMessage(bot, msg.channel, "Invalid distance.");
-				return;
-			}
-
-			var nameSeparator = getConfigValue(msg.server, "NAME_SEPARATOR");
-			var systems = compileArgs(args).split(nameSeparator);
-
-			if (systems.length != 2) {
-				_sendMessage(bot, msg.channel, "You have not provided enough system names.");
-				return;
-			}
-
-			var targetSystem = systems[0].trim();
-			var referenceSystem = systems[1].trim();
-			var edsmUser = getEdsmUser(msg.author);
-			//edsm.submitDistance(targetSystem, referenceSystem, distance, edsmUser, bot, msg);
-		}
-	},
-	"getStars": {
-		usage: "<system>",
-		help: "List the stars of a given system",
-		process: function(args, bot, msg) {
-			var system = compileArgs(args);
-			edmaterializer.getStars(system, bot, msg);
-		}
-	},
-	"getWorlds": {
-		usage: "<system>",
-		help: "List the worlds of a given system",
-		process: function(args, bot, msg) {
-			var system = compileArgs(args);
-			edmaterializer.getWorlds(system, bot, msg);
-		}
-	},
-	"showStar": {
-		usage: "<starId>",
-		help: "Show information on the given star",
-		process: function(args, bot, msg) {
-			var starId = compileArgs(args);
-			edmaterializer.showStarInfo(starId, bot, msg);
-		}
-	},
-	"showWorld": {
-		usage: "<worldId>",
-		help: "Show the information available on the given world",
-		process: function(args, bot, msg) {
-			var worldId = compileArgs(args);
-			edmaterializer.showWorldInfo(worldId, bot, msg);
-		}
-	},
-	"showSurvey": {
-		usage: "<surveyId>",
-		help: "Show information on the specified survey",
-		process: function(args, bot, msg) {
-			var surveyId = compileArgs(args);
-			edmaterializer.showSurveyInfo(surveyId, bot, msg);
-		}
-	},
-	"servers": {
+	"getServers": {
 		help: "Show the servers the bot is connected to.",
 		process: function(args, bot, msg) {
 			var serverList = bot.servers;
 
 			if (serverList.length == 0) {
-				_sendMessage(bot, msg.channel, "The bot is not connected to any server.");
+				botFunctions.sendMessage(bot, msg.channel, "The bot is not connected to any server.");
 				return;
 			}
 
@@ -1068,11 +296,9 @@ var commands = {
 				output += "\n\t" + serverList[x].name + " (Id: " + serverList[x].id + ")";
 			}
 
-			_sendMessage(bot, msg.channel, output);
+			botFunctions.sendMessage(bot, msg.channel, output);
 		},
-		permissions: [
-			"administrator"
-		]
+		owner: 1
 	},
 	"joinServer": {
 		usage: "<invite>",
@@ -1081,25 +307,23 @@ var commands = {
 			function callback(error, server) {
 				if (error) {
 					console.log("Error: " + error);
-					_sendMessage(bot, msg.channel, "I cannot join the server.");
+					botFunctions.sendMessage(bot, msg.channel, "I cannot join the server.");
 					return;
 				}
 
-				_sendMessage(bot, msg.channel, "Successfully joined the server " + server.name);
+				botFunctions.sendMessage(bot, msg.channel, "Successfully joined the server " + server.name);
 			}
 
-			var invite = compileArgs(args);
+			var invite = botFunctions.compileArgs(args);
 
 			if (!invite) {
-				_sendMessage(bot, msg.channel, "You have to provide an invite.");
+				botFunctions.sendMessage(bot, msg.channel, "You have to provide an invite.");
 				return;
 			}
 
 			bot.joinServer(invite, callback);
 		},
-		permissions: [
-			"administrator"
-		]
+		owner: 1
 	},
 	"leaveServer": {
 		usage: "[server]",
@@ -1108,32 +332,114 @@ var commands = {
 			function callback(error) {
 				if (error) {
 					console.log("Error: " + error);
-					_sendMessage(bot, msg.channel, "I was unable to leave the server " + server);
+					botFunctions.sendMessage(bot, msg.channel, "I was unable to leave the server " + server);
 					return;
 				}
 
-				_sendMessage(bot, msg.channel, "Successfully left the server " + serverObject.name);
+				botFunctions.sendMessage(bot, msg.channel, "Successfully left the server " + serverObject.name);
 			}
 
-			var server = compileArgs(args);
+			var server = botFunctions.compileArgs(args);
 			var serverObject;
 
 			if (!server) {
 				serverObject = msg.server;
 			} else {
-				serverObject = getServer(bot, server);
+				serverObject = botFunctions.getServer(bot, server);
 
 				if (!serverObject) {
-					serverObject = getServerByName(bot, server);
+					serverObject = botFunctions.getServerByName(bot, server);
 				}
 			}
 
 			if (!serverObject) {
-				_sendMessage(bot, msg.channel, "Cannot find the server " + server);
+				botFunctions.sendMessage(bot, msg.channel, "Cannot find the server " + server);
 				return;
 			}
 
 			bot.leaveServer(serverObject, callback);
+		},
+		owner: 1
+	},
+	/*"clearChannel": {
+		usage: "[channel]",
+		help: "Clear the given, or current, channel.",
+		process: function(args, bot, msg) {
+			function deleteHandler(error) {
+				if (error) {
+					console.log("Error: " + error);
+					botFunctions.sendMessage(bot, msg.channel, "There was an error clearing " + serverChannel.name);
+					return;
+				}
+
+				//bot.getChannelLogs(serverChannel, 50, {}, logHandler);
+				bot.getChannelLogs(serverChannel, 1, {}, logHandler);
+			}
+
+			function logHandler(error, messages) {
+				if (error) {
+					console.log("Error: " + error);
+					botFunctions.sendMessage(bot, msg.channel, "There was an error retrieving messages from " + serverChannel.name);
+					return;
+				}
+
+				if (messages.length == 0) {
+					botFunctions.sendMessage(bot, msg.channel, serverChannel.name + " has been cleared.");
+					return;
+				}
+
+				bot.deleteMessages(messages, deleteHandler);
+			}
+
+			var channel = botFunctions.compileArgs(args);
+			var serverChannel = msg.channel;
+
+			if (channel) {
+				serverChannel = botFunctions.getChannelByName(msg.server, channel);
+
+				if (!serverChannel) {
+					botFunctions.sendMessage(bot, msg.channel, "Cannot find the channel " + channel);
+					return;
+				}
+			}
+
+			if (!botFunctions.checkPermission(serverChannel, bot.user, "manageMessages")) {
+				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage messages in " + serverChannel.name);
+				return;
+			}
+
+			//bot.getChannelLogs(serverChannel, 50, {}, logHandler);
+			bot.getChannelLogs(serverChannel, 1, {}, logHandler);
+		},
+		permissions: [
+			"administrator"
+		]
+	},*/
+	"getUserId": {
+		usage: "[user]",
+		help: "Get the ID of the given user or yourself.",
+		process: function(args, bot, msg) {
+			var user = botFunctions.compileArgs(args);
+			var serverUser = msg.author;
+
+			//find user, if given
+
+			botFunctions.sendMessage(bot, msg.channel, "The ID of " + serverUser.name + " is: " + serverUser.id);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"getModules": {
+		help: "Get a list of the loaded modules.",
+		process: function(args, bot, msg) {
+			var output = "";
+
+			for (var key in botFunctions.loadedModules) {
+				output += key + "\n";
+			}
+
+			botFunctions.sendMessage(bot, msg.channel, output);
 		},
 		permissions: [
 			"administrator"
@@ -1154,7 +460,7 @@ var commands = {
 			}
 
 			if (untaggedUsers.length == 0) {
-				_sendMessage(bot, msg.channel, "There are no untagged users.");
+				botFunctions.sendMessage(bot, msg.channel, "There are no untagged users.");
 				return;
 			}
 
@@ -1164,8 +470,8 @@ var commands = {
 				output += "\t" + untaggedUsers[x].name + "\n";
 			}
 
-			_sendMessage(bot, msg.channel, "List sent as private message.");
-			_sendMessage(bot, msg.author, output);
+			botFunctions.sendMessage(bot, msg.channel, "List sent as private message.");
+			botFunctions.sendMessage(bot, msg.author, output);
 		},
 		permissions: [
 			"administrator"
@@ -1174,14 +480,14 @@ var commands = {
 	"getRespondToCommands": {
 		help: "See if the bot is set to respond to commands.",
 		process: function(args, bot, msg) {
-			var respondToCommands = getConfigValue(msg.server, "RESPOND_TO_COMMANDS");
+			var respondToCommands = botFunctions.getConfigValue(msg.server, "RESPOND_TO_COMMANDS");
 
 			if (respondToCommands == 0) {
-				_sendMessage(bot, msg.channel, "The bot does not respond to commands.");
+				botFunctions.sendMessage(bot, msg.channel, "The bot does not respond to commands.");
 				return;
 			}
 
-			_sendMessage(bot, msg.channel, "The bot responds to commands.");
+			botFunctions.sendMessage(bot, msg.channel, "The bot responds to commands.");
 		},
 		permissions: [
 			"administrator"
@@ -1191,24 +497,24 @@ var commands = {
 		usage: "<1|0>",
 		help: "Set whether or not the bot should respond to commands.",
 		process: function(args, bot, msg) {
-			var respondToCommands = compileArgs(args);
+			var respondToCommands = botFunctions.compileArgs(args);
 
 			if (respondToCommands != 0 && respondToCommands != 1) {
-				_sendMessage(bot, msg.channel, "Invalid value.");
+				botFunctions.sendMessage(bot, msg.channel, "Invalid value.");
 				return;
 			}
 
-			if (!setConfigValue(msg.server, "RESPOND_TO_COMMANDS", respondToCommands)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+			if (!botFunctions.setConfigValue(msg.server, "RESPOND_TO_COMMANDS", respondToCommands)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
 				return;
 			}
 
 			if (respondToCommands == 0) {
-				_sendMessage(bot, msg.channel, "The bot will now no longer respond to commands.");
+				botFunctions.sendMessage(bot, msg.channel, "The bot will now no longer respond to commands.");
 				return;
 			}
 
-			_sendMessage(bot, msg.channel, "The bot will from now on respond to commands.");
+			botFunctions.sendMessage(bot, msg.channel, "The bot will from now on respond to commands.");
 		},
 		permissions: [
 			"administrator"
@@ -1217,14 +523,14 @@ var commands = {
 	"getRespondToMentions": {
 		help: "See if the bot is set to respond to mentions.",
 		process: function(args, bot, msg) {
-			var respondToMentions = getConfigValue(msg.server, "RESPOND_TO_MENTIONS");
+			var respondToMentions = botFunctions.getConfigValue(msg.server, "RESPOND_TO_MENTIONS");
 
 			if (respondToMentions == 0) {
-				_sendMessage(bot, msg.channel, "The bot does not respond to mentions.");
+				botFunctions.sendMessage(bot, msg.channel, "The bot does not respond to mentions.");
 				return;
 			}
 
-			_sendMessage(bot, msg.channel, "The bot responds to mentions.");
+			botFunctions.sendMessage(bot, msg.channel, "The bot responds to mentions.");
 		},
 		permissions: [
 			"administrator"
@@ -1234,24 +540,24 @@ var commands = {
 		usage: "<1|0>",
 		help: "Set whether or not the bot should respond to mentions.",
 		process: function(args, bot, msg) {
-			var respondToMentions = Number(compileArgs(args));
+			var respondToMentions = Number(botFunctions.compileArgs(args));
 
 			if (respondToMentions != 0 && respondToMentions != 1) {
-				_sendMessage(bot, msg.channel, "Invalid value.");
+				botFunctions.sendMessage(bot, msg.channel, "Invalid value.");
 				return;
 			}
 
-			if (!setConfigValue(msg.server, "RESPOND_TO_MENTIONS", respondToMentions)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+			if (!botFunctions.setConfigValue(msg.server, "RESPOND_TO_MENTIONS", respondToMentions)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
 				return;
 			}
 
 			if (respondToMentions == 0) {
-				_sendMessage(bot, msg.channel, "The bot will now no longer respond to mentions.");
+				botFunctions.sendMessage(bot, msg.channel, "The bot will now no longer respond to mentions.");
 				return;
 			}
 
-			_sendMessage(bot, msg.channel, "The bot will from now on respond to mentions.");
+			botFunctions.sendMessage(bot, msg.channel, "The bot will from now on respond to mentions.");
 		},
 		permissions: [
 			"administrator"
@@ -1260,8 +566,8 @@ var commands = {
 	"getCommandPrefix": {
 		help: "Get the current command prefix.",
 		process: function(args, bot, msg) {
-			var commandPrefix = getConfigValue(msg.server, "COMMAND_PREFIX");
-			_sendMessage(bot, msg.channel, "The current command prefix is: " + commandPrefix);
+			var commandPrefix = botFunctions.getConfigValue(msg.server, "COMMAND_PREFIX");
+			botFunctions.sendMessage(bot, msg.channel, "The current command prefix is: " + commandPrefix);
 		},
 		permissions: [
 			"administrator"
@@ -1271,19 +577,19 @@ var commands = {
 		usage: "<value>",
 		help: "Set the command prefix.",
 		process: function(args, bot, msg) {
-			var commandPrefix = compileArgs(args);
+			var commandPrefix = botFunctions.compileArgs(args);
 
 			if (!commandPrefix) {
-				_sendMessage(bot, msg.channel, "The command prefix cannot be empty.");
+				botFunctions.sendMessage(bot, msg.channel, "The command prefix cannot be empty.");
 				return;
 			}
 
-			if (!setConfigValue(msg.server, "COMMAND_PREFIX", commandPrefix)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+			if (!botFunctions.setConfigValue(msg.server, "COMMAND_PREFIX", commandPrefix)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
 				return;
 			}
 
-			_sendMessage(bot, msg.channel, "Command prefix set to: " + commandPrefix);
+			botFunctions.sendMessage(bot, msg.channel, "Command prefix set to: " + commandPrefix);
 		},
 		permissions: [
 			"administrator"
@@ -1292,8 +598,8 @@ var commands = {
 	"getNameSeparator": {
 		help: "Get the current name separator.",
 		process: function(args, bot, msg) {
-			var nameSeparator = getConfigValue(msg.server, "NAME_SEPARATOR");
-			_sendMessage(bot, msg.channel, "The current name separator is: " + nameSeparator);
+			var nameSeparator = botFunctions.getConfigValue(msg.server, "NAME_SEPARATOR");
+			botFunctions.sendMessage(bot, msg.channel, "The current name separator is: " + nameSeparator);
 		},
 		permissions: [
 			"administrator"
@@ -1303,19 +609,19 @@ var commands = {
 		usage: "<value>",
 		help: "Set the name separator.",
 		process: function(args, bot, msg) {
-			var nameSeparator = compileArgs(args);
+			var nameSeparator = botFunctions.compileArgs(args);
 
 			if (!nameSeparator) {
-				_sendMessage(bot, msg.channel, "The name separator cannot be empty.");
+				botFunctions.sendMessage(bot, msg.channel, "The name separator cannot be empty.");
 				return;
 			}
 
-			if (!setConfigValue(msg.server, "NAME_SEPARATOR", nameSeparator)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+			if (!botFunctions.setConfigValue(msg.server, "NAME_SEPARATOR", nameSeparator)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
 				return;
 			}
 
-			_sendMessage(bot, msg.channel, "Name separator set to: " + nameSeparator);
+			botFunctions.sendMessage(bot, msg.channel, "Name separator set to: " + nameSeparator);
 		},
 		permissions: [
 			"administrator"
@@ -1324,10 +630,10 @@ var commands = {
 	"getIgnoredUsers": {
 		help: "Get the list of ignored users on this server.",
 		process: function(args, bot, msg) {
-			var ignoredUsers = getConfigValue(msg.server, "IGNORE_USERS");
+			var ignoredUsers = botFunctions.getConfigValue(msg.server, "IGNORE_USERS");
 
 			if (ignoredUsers.length == 0) {
-				_sendMessage(bot, msg.channel, "No users are being ignored.");
+				botFunctions.sendMessage(bot, msg.channel, "No users are being ignored.");
 				return;
 			}
 
@@ -1352,7 +658,7 @@ var commands = {
 			var output = "The following users are being ignored by this bot:\n\t";
 			output += userNames.join("\n\t");
 
-			_sendMessage(bot, msg.channel, output);
+			botFunctions.sendMessage(bot, msg.channel, output);
 		},
 		permissions: [
 			"administrator",
@@ -1362,35 +668,35 @@ var commands = {
 		usage: "<user>",
 		help: "Add a user the bot should ignore.",
 		process: function(args, bot, msg) {
-			var user = compileArgs(args);
+			var user = botFunctions.compileArgs(args);
 
 			if (!user) {
-				_sendMessage(bot, msg.channel, "You must specify the user the bot should ignore.");
+				botFunctions.sendMessage(bot, msg.channel, "You must specify the user the bot should ignore.");
 				return;
 			}
 
-			var serverUser = getUserByName(msg.server, user);
+			var serverUser = botFunctions.getUserByName(msg.server, user);
 
 			if (!serverUser) {
-				_sendMessage(bot, msg.channel, "Cannot find the user " + user);
+				botFunctions.sendMessage(bot, msg.channel, "Cannot find the user " + user);
 				return;
 			}
 
-			var ignoredUsers = getConfigValue(msg.server, "IGNORE_USERS");
+			var ignoredUsers = botFunctions.getConfigValue(msg.server, "IGNORE_USERS");
 
 			if (ignoredUsers.indexOf(serverUser.id) > -1) {
-				_sendMessage(bot, msg.channel, "I already ignore the user " + serverUser.name);
+				botFunctions.sendMessage(bot, msg.channel, "I already ignore the user " + serverUser.name);
 				return;
 			}
 
 			ignoredUsers.push(serverUser.id);
 
-			if (!setConfigValue(msg.server, "IGNORE_USERS", ignoredUsers)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+			if (!botFunctions.setConfigValue(msg.server, "IGNORE_USERS", ignoredUsers)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
 				return;
 			}
 
-			_sendMessage(bot, msg.channel, "User " + serverUser.name + " will now be ignored.");
+			botFunctions.sendMessage(bot, msg.channel, "User " + serverUser.name + " will now be ignored.");
 		},
 		permissions: [
 			"administrator",
@@ -1400,36 +706,36 @@ var commands = {
 		usage: "<user>",
 		help: "Remove a user from the ignore list.",
 		process: function(args, bot, msg) {
-			var user = compileArgs(args);
+			var user = botFunctions.compileArgs(args);
 
 			if (!user) {
-				_sendMessage(bot, msg.channel, "You need to specify the user you want me to stop ignoring.");
+				botFunctions.sendMessage(bot, msg.channel, "You need to specify the user you want me to stop ignoring.");
 				return;
 			}
 
-			var serverUser = getUserByName(msg.server, user);
+			var serverUser = botFunctions.getUserByName(msg.server, user);
 
 			if (!serverUser) {
-				_sendMessage(bot, msg.channel, "Cannot find the user " + user);
+				botFunctions.sendMessage(bot, msg.channel, "Cannot find the user " + user);
 				return;
 			}
 
-			var ignoredUsers = getConfigValue(msg.server, "IGNORE_USERS");
+			var ignoredUsers = botFunctions.getConfigValue(msg.server, "IGNORE_USERS");
 			var userIndex = ignoredUsers.indexOf(serverUser.id);
 
 			if (userIndex == -1) {
-				_sendMessage(bot, msg.channel, "I do not ignore the user " + serverUser.name);
+				botFunctions.sendMessage(bot, msg.channel, "I do not ignore the user " + serverUser.name);
 				return;
 			}
 
 			ignoredUsers.splice(userIndex,1);
 
-			if (!setConfigValue(msg.server, "IGNORE_USERS", ignoredUsers)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+			if (!botFunctions.setConfigValue(msg.server, "IGNORE_USERS", ignoredUsers)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
 				return;
 			}
 
-			_sendMessage(bot, msg.channel, "User " + serverUser.name + " will no longer be ignored.");
+			botFunctions.sendMessage(bot, msg.channel, "User " + serverUser.name + " will no longer be ignored.");
 		},
 		permissions: [
 			"administrator",
@@ -1438,10 +744,10 @@ var commands = {
 	"getIgnoredChannels": {
 		help: "Get the list of ignored channels on this server.",
 		process: function(args, bot, msg) {
-			var ignoredChannels = getConfigValue(msg.server, "IGNORE_CHANNELS");
+			var ignoredChannels = botFunctions.getConfigValue(msg.server, "IGNORE_CHANNELS");
 
 			if (ignoredChannels.length == 0) {
-				_sendMessage(bot, msg.channel, "No channels are being ignored.");
+				botFunctions.sendMessage(bot, msg.channel, "No channels are being ignored.");
 				return;
 			}
 
@@ -1466,7 +772,7 @@ var commands = {
 			var output = "The following channels are being ignored by this bot:\n\t";
 			output += channelNames.join("\n\t");
 
-			_sendMessage(bot, msg.channel, output);
+			botFunctions.sendMessage(bot, msg.channel, output);
 		},
 		permissions: [
 			"administrator"
@@ -1476,34 +782,34 @@ var commands = {
 		usage: "[channel]",
 		help: "Add a channel the bot should ignore.",
 		process: function(args, bot, msg) {
-			var channel = compileArgs(args);
+			var channel = botFunctions.compileArgs(args);
 
 			if (!channel) {
 				channel = msg.channel;
 			}
 
-			var serverChannel = getChannelByName(msg.server, channel);
+			var serverChannel = botFunctions.getChannelByName(msg.server, channel);
 
 			if (!serverChannel) {
-				_sendMessage(bot, msg.channel, "Cannot find the channel " + channel);
+				botFunctions.sendMessage(bot, msg.channel, "Cannot find the channel " + channel);
 				return;
 			}
 
-			var ignoredChannels = getConfigValue(msg.server, "IGNORE_CHANNELS");
+			var ignoredChannels = botFunctions.getConfigValue(msg.server, "IGNORE_CHANNELS");
 
 			if (ignoredChannels.indexOf(serverChannel.id) > -1) {
-				_sendMessage(bot, msg.channel, "I already ignore the channel " + serverChannel.name);
+				botFunctions.sendMessage(bot, msg.channel, "I already ignore the channel " + serverChannel.name);
 				return;
 			}
 
 			ignoredChannels.push(serverChannel.id);
 
-			if (!setConfigValue(msg.server, "IGNORE_CHANNELS", ignoredChannels)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+			if (!botFunctions.setConfigValue(msg.server, "IGNORE_CHANNELS", ignoredChannels)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
 				return;
 			}
 
-			_sendMessage(bot, msg.channel, "Channel " + serverChannel.name + " will now be ignored.");
+			botFunctions.sendMessage(bot, msg.channel, "Channel " + serverChannel.name + " will now be ignored.");
 		},
 		permissions: [
 			"administrator"
@@ -1513,423 +819,103 @@ var commands = {
 		usage: "<channel>",
 		help: "Remove a channel from the ignore list.",
 		process: function(args, bot, msg) {
-			var channel = compileArgs(args);
+			var channel = botFunctions.compileArgs(args);
 
 			if (!channel) {
-				_sendMessage(bot, msg.channel, "You need to specify the channel you want me to stop ignoring.");
+				botFunctions.sendMessage(bot, msg.channel, "You need to specify the channel you want me to stop ignoring.");
 				return;
 			}
 
-			var serverChannel = getChannelByName(msg.server, channel);
+			var serverChannel = botFunctions.getChannelByName(msg.server, channel);
 
 			if (!serverChannel) {
-				_sendMessage(bot, msg.channel, "Cannot find the channel " + channel);
+				botFunctions.sendMessage(bot, msg.channel, "Cannot find the channel " + channel);
 				return;
 			}
 
-			var ignoredChannels = getConfigValue(msg.server, "IGNORE_CHANNELS");
+			var ignoredChannels = botFunctions.getConfigValue(msg.server, "IGNORE_CHANNELS");
 			var channelIndex = ignoredChannels.indexOf(serverChannel.id);
 
 			if (channelIndex == -1) {
-				_sendMessage(bot, msg.channel, "I do not ignore the channel " + serverChannel.name);
+				botFunctions.sendMessage(bot, msg.channel, "I do not ignore the channel " + serverChannel.name);
 				return;
 			}
 
 			ignoredChannels.splice(channelIndex,1);
 
-			if (!setConfigValue(msg.server, "IGNORE_CHANNELS", ignoredChannels)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+			if (!botFunctions.setConfigValue(msg.server, "IGNORE_CHANNELS", ignoredChannels)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
 				return;
 			}
 
-			_sendMessage(bot, msg.channel, "Channel " + serverChannel.name + " will no longer be ignored.");
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"getRatsignalContactRole": {
-		help: "Get the current ratsignal contact role.",
-		process: function(args, bot, msg) {
-			var ratsignalContactRole = getConfigValue(msg.server, "RATSIGNAL_CONTACT_ROLE");
-
-			if (!ratsignalContactRole) {
-				_sendMessage(bot, msg.channel, "No ratsignal contact role has been set.");
-				return;
-			}
-
-			var role = getRole(msg.server, ratsignalContactRole);
-
-			if (!role) {
-				_sendMessage(bot, msg.channel, "A role is set, but it does not exist on this server.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The ratsignal contact role is: " + role.name);
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"setRatsignalContactRole": {
-		usage: "[role]",
-		help: "Sets a role, or none, as the role that will be contacted in case of a ratsignal.",
-		process: function(args, bot, msg) {
-			var role = compileArgs(args);
-
-			if (!role) {
-				if (!setConfigValue(msg.server, "RATSIGNAL_CONTACT_ROLE", "")) {
-					_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-					return;
-				}
-
-				_sendMessage(bot, msg.channel, "The ratsignal contact role has been cleared.");
-				return;
-			}
-
-			var serverRole = getRoleByName(msg.server, role);
-
-			if (!serverRole) {
-				_sendMessage(bot, msg.channel, "Cannot find the role " + role);
-				return;
-			}
-
-			if (!setConfigValue(msg.server, "RATSIGNAL_CONTACT_ROLE", serverRole.id)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The ratsignal contact role has been set to: " + serverRole.name);
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"getRatsignalEmergencyChannel": {
-		help: "Get the current ratsignal emergency channel.",
-		process: function(args, bot, msg) {
-			var ratsignalEmergencyChannel = getConfigValue(msg.server, "RATSIGNAL_EMERGENCY_CHANNEL");
-
-			if (!ratsignalEmergencyChannel) {
-				_sendMessage(bot, msg.channel, "No ratsignal emergency channel has been set.");
-				return;
-			}
-
-			var channel = getChannel(msg.server, ratsignalEmergencyChannel);
-
-			if (!channel) {
-				_sendMessage(bot, msg.channel, "A channel is set, but it does not exist on this server.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The ratsignal emergency channel is: " + channel.name);
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"setRatsignalEmergencyChannel": {
-		usage: "[channel]",
-		help: "Sets a channel, or none, as the channel commanders will be directed towards in case of a ratsignal.",
-		process: function(args, bot, msg) {
-			var channel = compileArgs(args);
-
-			if (!channel) {
-				if (!setConfigValue(msg.server, "RATSIGNAL_EMERGENCY_CHANNEL", "")) {
-					_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-					return;
-				}
-
-				_sendMessage(bot, msg.channel, "The ratsignal emergency channel has been cleared.");
-				return;
-			}
-
-			var serverChannel = getChannelByName(msg.server, channel);
-
-			if (!serverChannel) {
-				_sendMessage(bot, msg.channel, "Cannot find the channel " + channel);
-				return;
-			}
-
-			if (!setConfigValue(msg.server, "RATSIGNAL_EMERGENCY_CHANNEL", serverChannel.id)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The ratsignal emergency channel has been set to " + serverChannel.name);
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"getRatsignalFuelProcedureLink": {
-		help: "Get the current ratsignal fuel procedure link.",
-		process: function(args, bot, msg) {
-			var ratsignalFuelProcedureLink = getConfigValue(msg.server, "RATSIGNAL_FUEL_PROCEDURE_LINK");
-
-			if (!ratsignalFuelProcedureLink) {
-				_sendMessage(bot, msg.channel, "No ratsignal fuel procedure link has been set.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The ratsignal fuel procedure link is: " + ratsignalFuelProcedureLink);
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"setRatsignalFuelProcedureLink": {
-		usage: "[link]",
-		help: "Sets a link, or none, as the link commanders will be sent for emergency fuel procedures in case of a ratsignal.",
-		process: function(args, bot, msg) {
-			var link = compileArgs(args);
-
-			if (!link) {
-				if (!setConfigValue(msg.server, "RATSIGNAL_FUEL_PROCEDURE_LINK", "")) {
-					_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-					return;
-				}
-
-				_sendMessage(bot, msg.channel, "The ratsignal fuel procedure link has been cleared.");
-				return;
-			}
-
-			if (!setConfigValue(msg.server, "RATSIGNAL_FUEL_PROCEDURE_LINK", link)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The ratsignal fuel procedure link has been set to " + link);
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"getTrilaterationContactRole": {
-		help: "Get the role that will be contacted in case of trilateration requests.",
-		process: function(args, bot, msg) {
-			var trilaterationContactRole= getConfigValue(msg.server, "TRILATERATION_CONTACT_ROLE");
-
-			if (!trilaterationContactRole) {
-				_sendMessage(bot, msg.channel, "No trilateration contact role has been set.");
-				return;
-			}
-
-			var role = getRole(msg.server, trilaterationContactRole);
-
-			if (!role) {
-				_sendMessage(bot, msg.channel, "A role is set, but it does not exist on this server.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The trilateration contact role is: " + role.name);
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"setTrilaterationContactRole": {
-		usage: "[role]",
-		help: "Set a role, or none, that will be contacted in case of trilateration requests.",
-		process: function(args, bot, msg) {
-			var role = compileArgs(args);
-
-			if (!role) {
-				if (!setConfigValue(msg.server, "TRILATERATION_CONTACT_ROLE", "")) {
-					_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-					return;
-				}
-
-				_sendMessage(bot, msg.channel, "The trilateration contact role has been cleared.");
-				return;
-			}
-
-			var serverRole = getRoleByName(msg.server, role);
-
-			if (!serverRole) {
-				_sendMessage(bot, msg.channel, "Cannot find the role " + role);
-				return;
-			}
-
-			if (!setConfigValue(msg.server, "TRILATERATION_CONTACT_ROLE", serverRole.id)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The trilateration contact role has been set to " + serverRole.name);
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"getEdsmEnableSubmission": {
-		help: "See if EDSM distance submissions are enabled.",
-		process: function(args, bot, msg) {
-			var edsmEnableSubmission = getConfigValue(msg.server, "EDSM_ENABLE_SUBMISSION");
-
-			if (!edsmEnableSubmission) {
-				_sendMessage(bot, msg.channel, "The bot does not allow distance submissions to EDSM.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The bot allows distance submissions to EDSM.");
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"setEdsmEnableSubmission": {
-		usage: "<1|0>",
-		help: "Set whether or not the bot should allow distance submissions to EDSM.",
-		process: function(args, bot, msg) {
-			var edsmEnableSubmission = Number(compileArgs(args));
-
-			if (edsmEnableSubmission != 0 && edsmEnableSubmission != 1) {
-				_sendMessage(bot, msg.channel, "Invalid value.");
-				return;
-			}
-
-			if (!setConfigValue(msg.server, "EDSM_ENABLE_SUBMISSION", edsmEnableSubmission)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-				return;
-			}
-
-			if (edsmEnableSubmission == 0) {
-				_sendMessage(bot, msg.channel, "The bot will now no longer allow distance submissions to EDSM.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The bot will from now on allow distance submissions to EDSM.");
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"getEdsmSubmitRole": {
-		help: "Get the role that is allowed to submit distances to EDSM.",
-		process: function(args, bot, msg) {
-			var edsmSubmitRole = getConfigValue(msg.server, "EDSM_SUBMIT_ROLE");
-
-			if (!edsmSubmitRole) {
-				_sendMessage(bot, msg.channel, "No EDSM distance submission role has been set.");
-				return;
-			}
-
-			var role = getRole(msg.server, edsmSubmitRole);
-
-			if (!role) {
-				_sendMessage(bot, msg.channel, "A role is set, but it does not exist on this server.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The EDSM distance submission role is: " + role.name);
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"setEdsmSubmitRole": {
-		usage: "[role]",
-		help: "Set a role, or none, that is allowed to submit distances to EDSM.",
-		process: function(args, bot, msg) {
-			var role = compileArgs(args);
-
-			if (!role) {
-				if (!setConfigValue(msg.server, "EDSM_SUBMIT_ROLE")) {
-					_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-					return;
-				}
-
-				_sendMessage(bot, msg.channel, "The EDSM distance submission role has been cleared.");
-				return;
-			}
-
-			var serverRole = getRoleByName(msg.server, role);
-
-			if (!serverRole) {
-				_sendMessage(bot, msg.channel, "Cannot find the role " + role);
-				return;
-			}
-
-			if (!setConfigValue(msg.server, "EDSM_SUBMIT_ROLE", serverRole.id)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The EDSM distance submission role has been set to: " + serverRole.name);
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"getEdsmSubmitRequireUser": {
-		help: "See if EDSM user registration is required to submit distances.",
-		process: function(args, bot, msg) {
-			var edsmSubmitRequireUser = getConfigValue(msg.server, "EDSM_SUBMIT_REQUIRE_USER");
-
-			if (!edsmSubmitRequireUser) {
-				_sendMessage(bot, msg.channel, "The bot does not require EDSM user registration to allow distance submission to EDSM.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The bot does require EDSM user registration to allow distance submissions to EDSM.");
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"setEdsmSubmitRequireUser": {
-		usage: "<1|0>",
-		help: "Set whether or not EDSM user registration is required to submit distances.",
-		process: function(args, bot, msg) {
-			var edsmSubmitRequireUser = Number(compileArgs(args));
-
-			if (edsmSubmitRequireUser != 0 && edsmSubmitRequireUser != 1) {
-				_sendMessage(bot, msg.channel, "Invalid value.");
-				return;
-			}
-
-			if (!setConfigValue(msg.server, "EDSM_SUBMIT_REQUIRE_USER", edsmSubmitRequireUser)) {
-				_sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-				return;
-			}
-
-			if (edsmSubmitRequireUser == 0) {
-				_sendMessage(bot, msg.channel, "The bot will no longer require EDSM user registration to allow distance submissions to EDSM.");
-				return;
-			}
-
-			_sendMessage(bot, msg.channel, "The bot will from now on require EDSM user registration to allow distance submissions to EDSM.");
+			botFunctions.sendMessage(bot, msg.channel, "Channel " + serverChannel.name + " will no longer be ignored.");
 		},
 		permissions: [
 			"administrator"
 		]
 	},
 	"help": {
-		help: "Display help for this bot.",
+		usage: "[module]",
+		help: "Display help for this bot or a specific module.",
 		process: function(args, bot, msg) {
-			var output = VERSION + " commands:";
-			var key;
-			var commandPrefix = getConfigValue(msg.server, "COMMAND_PREFIX");
-			var nameSeparator = getConfigValue(msg.server, "NAME_SEPARATOR");
+			var moduleName = botFunctions.compileArgs(args);
 
-			for (key in commands) {
-				output += "\n\t" + commandPrefix + key;
-				var usage = commands[key].usage;
+			var commandPrefix = botFunctions.getConfigValue(msg.server, "COMMAND_PREFIX");
+			var nameSeparator = botFunctions.getConfigValue(msg.server, "NAME_SEPARATOR");
 
-				if (usage) {
-					output += " " + usage;
+			var output = "";
+
+			if (!moduleName) {
+				output += "\nGeneral bot commands:\n";
+
+				for (var key in commands) {
+					output += "\t" + commandPrefix + key;
+					var usage = commands[key].usage;
+
+					if (usage) {
+						output += " " + usage;
+					}
+
+					output += "\n\t\t\t";
+					output += commands[key].help + "\n";
+				}
+			}
+
+			for (var moduleKey in botFunctions.loadedModules) {
+				if (moduleName && moduleKey != moduleName) {
+					continue;
 				}
 
-				output += "\n\t\t\t";
-				output += commands[key].help;
+				var moduleCommands = botFunctions.loadedModules[moduleKey].commands;
+
+				if (moduleCommands) {
+					output += "\n" + moduleKey + " commands:\n"
+
+					for (var key in moduleCommands) {
+						output += "\t" + commandPrefix + key;
+						var usage = moduleCommands[key].usage;
+
+						if (usage) {
+							output += " " + usage;
+						}
+
+						output += "\n\t\t\t";
+						output += moduleCommands[key].help + "\n";
+					}
+				}
 			}
 
 			output = output.replace(/#NAME_SEPARATOR#/g, nameSeparator);
 
-			// console.log(output);
-			_sendMessage(bot, msg.channel, "Help sent as private message.");
-			_sendMessage(bot, msg.author, output);
+			if (!output) {
+				botFunctions.sendMessage(bot, msg.channel, "There is no help.");
+				return;
+			}
+
+			output = VERSION + " commands:\n" + output;
+
+			botFunctions.sendMessage(bot, msg.channel, "Help sent as private message.");
+			botFunctions.sendMessage(bot, msg.author, output);
 		}
 	},
 };
@@ -1943,7 +929,7 @@ function handleMessage(message) {
 		return;
 	}
 
-	var ignoredUsers = getConfigValue(message.server, "IGNORE_USERS");
+	var ignoredUsers = botFunctions.getConfigValue(message.server, "IGNORE_USERS");
 
 	if (ignoredUsers.length > 0) {
 		var index = ignoredUsers.indexOf(message.author.id);
@@ -1953,7 +939,7 @@ function handleMessage(message) {
 		}
 	}
 
-	var ignoredChannels = getConfigValue(message.server, "IGNORE_CHANNELS");
+	var ignoredChannels = botFunctions.getConfigValue(message.server, "IGNORE_CHANNELS");
 
 	if (ignoredChannels.length > 0) {
 		var index = ignoredChannels.indexOf(message.channel.id);
@@ -1963,10 +949,18 @@ function handleMessage(message) {
 		}
 	}
 
+	for (var key in botFunctions.loadedModules) {
+		if (botFunctions.loadedModules[key].messageHandler) {
+			if (botFunctions.loadedModules[key].messageHandler(message)) {
+				return;
+			}
+		}
+	}
+
 	var processed = 0;
 	var messageContent = "";
-	var respondToCommands = getConfigValue(message.server, "RESPOND_TO_COMMANDS");
-	var respondToMentions = getConfigValue(message.server, "RESPOND_TO_MENTIONS");
+	var respondToCommands = botFunctions.getConfigValue(message.server, "RESPOND_TO_COMMANDS");
+	var respondToMentions = botFunctions.getConfigValue(message.server, "RESPOND_TO_MENTIONS");
 
 	if (respondToMentions == 1) {
 		var mentionString = FGEBot.user.mention();
@@ -1985,9 +979,9 @@ function handleMessage(message) {
 		}
 	}
 
-	var commandPrefix = getConfigValue(message.server, "COMMAND_PREFIX");
+	var commandPrefix = botFunctions.getConfigValue(message.server, "COMMAND_PREFIX");
 
-	if (!processed && respondToCommands == 1 && message.content.startsWith(commandPrefix)) {
+	if (processed == 0 && respondToCommands == 1 && message.content.startsWith(commandPrefix)) {
 		processed = 1;
 		messageContent = message.content.substr(commandPrefix.length);
 	}
@@ -1996,10 +990,24 @@ function handleMessage(message) {
 		var args = messageContent.split(" ");
 		var cmd = commands[args[0]];
 
+		if (!cmd) {
+			for (var key in botFunctions.loadedModules) {
+				cmd = botFunctions.loadedModules[key].commands[args[0]];
+
+				if (cmd) {
+					if (botFunctions.loadedModules[key].preprocess) {
+						botFunctions.loadedModules[key].preprocess(args, FGEBot, message);
+					}
+
+					break;
+				}
+			}
+		}
+
 		if (cmd) {
 			if (cmd.permissions && cmd.permissions.length>0) {
 				if (message.channel.isPrivate) {
-					_sendMessage(FGEBot, message.channel, "Cannot execute " + args[0] + " through private messages.");
+					botFunctions.sendMessage(FGEBot, message.channel, "Cannot execute " + args[0] + " through private messages.");
 					return;
 				}
 
@@ -2007,9 +1015,16 @@ function handleMessage(message) {
 
 				for (var x=0; x<cmd.permissions.length; x++) {
 					if (!userPermissions.hasPermission(cmd.permissions[x])) {
-						_sendMessage(FGEBot, message.channel, "Insufficient permissions to execute " + args[0]);
+						botFunctions.sendMessage(FGEBot, message.channel, "Insufficient permissions to execute " + args[0]);
 						return;
 					}
+				}
+			}
+
+			if (cmd.owner && cmd.owner == 1) {
+				if (!config.OWNER_ID || message.author.id != config.OWNER_ID) {
+					botFunctions.sendMessage(FGEBot, message.channel, "You are not allowed to execute " + args[0]);
+					return;
 				}
 			}
 
@@ -2027,7 +1042,7 @@ function handleMessage(message) {
 				cmd.process(args, FGEBot, message);
 			} catch(e) {
 				if (config.debug) {
-					//_sendMessage(FGEBot, message.channel, "Command " + message.content + " failed.\n" + e.stack);
+					//botFunctions.sendMessage(FGEBot, message.channel, "Command " + message.content + " failed.\n" + e.stack);
 				}
 			}
 		}
@@ -2058,7 +1073,7 @@ function handleUserStatusChange(oldUser, newUser) {
 			var channel = FGEBot.channels.get("id", message.channel);
 			delete messagebox[user.id];
 			updateMessagebox();
-			_sendMessage(FGEBot, channel, message.content);
+			botFunctions.sendMessage(FGEBot, channel, message.content);
 		}
 	}
 }
@@ -2078,11 +1093,11 @@ function handleDisconnect() {
 }
 
 function handleNewMember(server, user) {
-	console.log("New user " + user.name + " on server " + server.name);
+	//console.log("New user " + user.name + " on server " + server.name);
 }
 
 function handleMemberRemoved(server, user) {
-	console.log(user.name + " has left the server " + server.name + " or has been removed.");
+	//console.log(user.name + " has left the server " + server.name + " or has been removed.");
 }
 
 FGEBot.on("message", handleMessage);
