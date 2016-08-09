@@ -11,8 +11,10 @@ var commands = {
 		help: "Send an emergency call to the Fuel Rats",
 		process: function(args, bot, msg) {
 			function callback(error, message) {
-				if (botFunctions.hasModule("edsm")) {
-					var edsm = botFunctions.getModule("edsm");
+				var edsm = botFunctions.getModule(msg.server, "edsm");
+
+				if (edsm) {
+					console.log("Ratsignal EDSM support enabled.");
 					var edsmUser = edsm.getEdsmUser(msg.author);
 
 					if (edsmUser) {

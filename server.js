@@ -3,7 +3,7 @@ var config = require('./config.js');
 
 var botFunctions = require("./bot_functions.js");
 
-const VERSION = "Jeeves 1.0";
+const VERSION = "Jeeves 1.0.1";
 
 botFunctions.loadModules();
 
@@ -70,11 +70,6 @@ function roleIsManageable(bot, channel, roleId) {
 	}
 
 	return 0;
-}
-
-function getUserMentionRenamed(user) {
-	var output = "<@!" + user.id + ">";
-	return output;
 }
 
 var commands = {
@@ -422,7 +417,14 @@ var commands = {
 			var user = botFunctions.compileArgs(args);
 			var serverUser = msg.author;
 
-			//find user, if given
+			if (user) {
+				serverUser = botFunctions.getUserByName(msg.server, user);
+
+				if (!serverUser) {
+					botFunctions.sendMessage(bot, msg.channel, "Cannot find the user " + user);
+					return;
+				}
+			}
 
 			botFunctions.sendMessage(bot, msg.channel, "The ID of " + serverUser.name + " is: " + serverUser.id);
 		},
@@ -434,12 +436,127 @@ var commands = {
 		help: "Get a list of the loaded modules.",
 		process: function(args, bot, msg) {
 			var output = "";
+			var activeModules = [];
 
 			for (var key in botFunctions.loadedModules) {
-				output += key + "\n";
+				if (!botFunctions.moduleIsEnabled(msg.server, key)) {
+					continue;
+				}
+
+				activeModules.push(key);
 			}
 
+			if (activeModules.length == 0) {
+				botFunctions.sendMessage(bot, msg.channel, "There are no loaded modules.");
+				return;
+			}
+
+			var output = "There are " + activeModules.length + " loaded modules:";
+			output += "\n\t" + activeModules.join("\n\t");
+
 			botFunctions.sendMessage(bot, msg.channel, output);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"getDisabledModules": {
+		help: "Get the list of disabled modules.",
+		process: function(args, bot, msg) {
+			var disabledModules = botFunctions.getConfigValue(msg.server, "DISABLED_MODULES");
+
+			if (disabledModules.length == 0) {
+				botFunctions.sendMessage(bot, msg.channel, "There are no disabled modules.");
+				return;
+			}
+
+			var moduleNames = [];
+
+			for (var x=0; x<disabledModules.length; x++) {
+				if (botFunctions.hasModule(disabledModules[x])) {
+					moduleNames.push(disabledModules[x]);
+				}
+			}
+
+			if (moduleNames.length == 0) {
+				botFunctions.sendMessage(bot, msg.channel, "There are no disabled modules.");
+				return;
+			}
+
+			var output = "There are " + moduleNames.length + " disabled modules:";
+			output += "\n\t" + moduleNames.join("\n\t");
+
+			botFunctions.sendMessage(bot, msg.channel, output);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"disableModule": {
+		usage: "<module>",
+		help: "Disable a module.",
+		process: function(args, bot, msg) {
+			var module = botFunctions.compileArgs(args);
+
+			if (!module) {
+				botFunctions.sendMessage(bot, msg.channel, "You must specify the module you want to disable.");
+				return;
+			}
+
+			if (!botFunctions.hasModule(module)) {
+				botFunctions.sendMessage(bot, msg.channel, "The module " + module + " does not exist.");
+				return;
+			}
+
+			var disabledModules = botFunctions.getConfigValue(msg.server, "DISABLED_MODULES");
+
+			if (disabledModules.indexOf(module) > -1) {
+				botFunctions.sendMessage(bot, msg.channel, "The module " + module + " is already disabled.");
+				return;
+			}
+
+			disabledModules.push(module);
+
+			if (!botFunctions.setConfigValue(msg.server, "DISABLED_MODULES", disabledModules)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+				return;
+			}
+
+			botFunctions.sendMessage(bot, msg.channel, "The module " + module + " has been disabled.");
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"enableModule": {
+		usage: "<module>",
+		help: "Reenable a disabled module.",
+		process: function(args, bot, msg) {
+			var module = botFunctions.compileArgs(args);
+			if (!module) {
+				botFunctions.sendMessage(bot, msg.channel, "You need to specify which module you want to enable.");
+				return;
+			}
+			if (!botFunctions.hasModule(module)) {
+				botFunctions.sendMessage(bot, msg.channel, "The module " + module + " does not exist.");
+				return;
+			}
+			var disabledModules = botFunctions.getConfigValue(msg.server, "DISABLED_MODULES");
+			var moduleIndex = disabledModules.indexOf(module);
+
+			if (moduleIndex == -1) {
+				botFunctions.sendMessage(bot, msg.channel, "The module " + module + " is already enabled.");
+				return;
+			}
+
+			disabledModules.splice(moduleIndex,1);
+
+			if (!botFunctions.setConfigValue(msg.server, "DISABLED_MODULES", disabledModules)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+				return;
+			}
+
+			botFunctions.sendMessage(bot, msg.channel, "The module " + module + " has been enabled.");
 		},
 		permissions: [
 			"administrator"
@@ -882,6 +999,10 @@ var commands = {
 			}
 
 			for (var moduleKey in botFunctions.loadedModules) {
+				if (!botFunctions.moduleIsEnabled(msg.server, moduleKey)) {
+					continue;
+				}
+
 				if (moduleName && moduleKey != moduleName) {
 					continue;
 				}
@@ -950,6 +1071,10 @@ function handleMessage(message) {
 	}
 
 	for (var key in botFunctions.loadedModules) {
+		if (!botFunctions.moduleIsEnabled(message.server, key)) {
+			continue;
+		}
+
 		if (botFunctions.loadedModules[key].messageHandler) {
 			if (botFunctions.loadedModules[key].messageHandler(message)) {
 				return;
@@ -964,7 +1089,7 @@ function handleMessage(message) {
 
 	if (respondToMentions == 1) {
 		var mentionString = FGEBot.user.mention();
-		var mentionStringRenamed = getUserMentionRenamed(FGEBot.user);
+		var mentionStringRenamed = botFunctions.getUserMentionRenamed(FGEBot.user);
 
 		if (message.content.startsWith(mentionString) || message.content.startsWith(mentionStringRenamed)) {
 			processed = 1;
@@ -992,6 +1117,10 @@ function handleMessage(message) {
 
 		if (!cmd) {
 			for (var key in botFunctions.loadedModules) {
+				if (!botFunctions.moduleIsEnabled(message.server, key)) {
+					continue;
+				}
+
 				cmd = botFunctions.loadedModules[key].commands[args[0]];
 
 				if (cmd) {

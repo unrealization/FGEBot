@@ -17,6 +17,8 @@ var dynamicDefaultConfig = {
 	"NAME_SEPARATOR": ":",
 	"RESPOND_TO_COMMANDS": 1,
 	"RESPOND_TO_MENTIONS": 1,
+	"DISABLED_MODULES": [
+	],
 	"IGNORE_USERS": [
 	],
 	"IGNORE_CHANNELS": [
@@ -54,15 +56,25 @@ function loadModules() {
 }
 
 function hasModule(module) {
-	if (loadedModules.hasOwnProperty(module)) {
-		return 1;
-	}
-
-	return 0;
+	return loadedModules.hasOwnProperty(module);
 }
 
-function getModule(module) {
+function moduleIsEnabled(server, module) {
 	if (!hasModule(module)) {
+		return false;
+	}
+
+	var disabledModules = getConfigValue(server, "DISABLED_MODULES");
+
+	if (disabledModules.indexOf(module) > -1) {
+		return false;
+	}
+
+	return true;
+}
+
+function getModule(server, module) {
+	if (!moduleIsEnabled(server, module)) {
 		return null;
 	}
 
@@ -118,12 +130,12 @@ function getConfigValue(server, option) {
 
 function setConfigValue(server, option, value) {
 	if (!server) {
-		return 0;
+		return false;
 	}
 
 	dynamicConfig["servers"][server.id][option] = value;
 	updateDynamicConfig();
-	return 1;
+	return true;
 }
 
 function compileArgs(args) {
@@ -300,9 +312,15 @@ function getUserByName(server, user) {
 	return null;
 }
 
+function getUserMentionRenamed(user) {
+	var output = "<@!" + user.id + ">";
+	return output;
+}
+
 exports.loadedModules = loadedModules;
 exports.loadModules = loadModules;
 exports.hasModule = hasModule;
+exports.moduleIsEnabled = moduleIsEnabled;
 exports.getModule = getModule;
 exports.getConfigValue = getConfigValue;
 exports.setConfigValue = setConfigValue;
@@ -317,3 +335,4 @@ exports.getRole = getRole;
 exports.getRoleByName = getRoleByName;
 exports.getUser = getUser;
 exports.getUserByName = getUserByName;
+exports.getUserMentionRenamed = getUserMentionRenamed;

@@ -4,7 +4,7 @@ var talkList = [];
 
 function isTalking(server, user) {
 	if (!server) {
-		return 0;
+		return false;
 	}
 
 	if (talkList[server.id] == null) {
@@ -12,13 +12,17 @@ function isTalking(server, user) {
 	}
 
 	if (talkList[server.id].indexOf(user.id) > -1) {
-		return 1;
+		return true;
 	}
 
-	return 0;
+	return false;
 }
 
 function startTalk(server, user) {
+	if (!server) {
+		return;
+	}
+
 	if (isTalking(server, user)) {
 		return;
 	}
@@ -31,6 +35,10 @@ function startTalk(server, user) {
 }
 
 function stopTalk(server, user) {
+	if (!server) {
+		return;
+	}
+
 	if (!isTalking(server, user)) {
 		return;
 	}
@@ -50,10 +58,10 @@ function stopTalk(server, user) {
 
 function messageHandler(message) {
 	if (isTalking(message.server, message.author)) {
-		return 1;
+		return true;
 	}
 
-	return 0;
+	return false;
 }
 
 var commands = {
