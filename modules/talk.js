@@ -56,8 +56,8 @@ function stopTalk(server, user) {
 	talkList[server.id].splice(talkIndex,1);
 }
 
-function messageHandler(message) {
-	if (isTalking(message.server, message.author)) {
+function messageHandler(bot, server, message) {
+	if (isTalking(server, message.author)) {
 		return true;
 	}
 
@@ -91,5 +91,5 @@ var commands = {
 	},
 };
 
-exports.messageHandler = messageHandler;
+exports.onMessage = messageHandler;
 exports.commands = commands;

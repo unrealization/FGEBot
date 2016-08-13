@@ -3,7 +3,7 @@ var config = require('./config.js');
 
 var botFunctions = require("./bot_functions.js");
 
-const VERSION = "Jeeves 1.0.1";
+const VERSION = "Jeeves 1.1.0";
 
 botFunctions.loadModules();
 
@@ -14,63 +14,6 @@ var options = {
 var FGEBot = new Discord.Client(options);
 
 var startTime = Date.now();
-
-var messagebox;
-
-try {
-	messagebox = require("./messagebox.json");
-} catch(e) {
-	//no stored messages
-	messagebox = {};
-}
-
-function updateMessagebox(){
-	//require("fs").writeFile("./messagebox.json",JSON.stringify(messagebox,null,2), null);
-	require("fs").writeFile("./messagebox.json",JSON.stringify(messagebox,null,2));
-}
-
-function getManageableRoles(bot, channel) {
-	var manageableRoles = [];
-
-	if (!botFunctions.checkPermission(channel, bot.user, "manageRoles")) {
-		return manageableRoles;
-	}
-
-	var botRoles = channel.server.rolesOfUser(bot.user);
-	var rolePosition;
-
-	for (var x=0; x<botRoles.length; x++) {
-		if (botRoles[x].hasPermission("manageRoles") && (!rolePosition || botRoles[x].position<rolePosition)) {
-			rolePosition = botRoles[x].position;
-		}
-	}
-
-	var serverRoles = channel.server.roles;
-
-	for (var x=0; x<serverRoles.length; x++) {
-		if (serverRoles[x].name == "@everyone") {
-			continue;
-		}
-
-		if (serverRoles[x].position<rolePosition) {
-			manageableRoles.push(serverRoles[x]);
-		}
-	}
-
-	return manageableRoles;
-}
-
-function roleIsManageable(bot, channel, roleId) {
-	var manageableRoles = getManageableRoles(bot, channel);
-
-	for (var x=0; x<manageableRoles.length; x++) {
-		if (manageableRoles[x].id == roleId) {
-			return 1;
-		}
-	}
-
-	return 0;
-}
 
 var commands = {
 	"ping": {
@@ -113,166 +56,6 @@ var commands = {
 			}
 
 			botFunctions.sendMessage(bot, msg.channel,"Uptime: " + timestr);
-		}
-	},
-	"msg": {
-		usage: "<user> <message>",
-		help: "Leaves a message for a user the next time they come online",
-		process: function(args, bot, msg) {
-			var user = args.shift();
-			var message = args.join(' ');
-
-			if(user.startsWith('<@')) {
-				user = user.substr(2,user.length-3);
-			}
-
-			var target = msg.channel.server.members.get("id",user);
-
-			if(!target) {
-				target = msg.channel.server.members.get("username",user);
-			}
-
-			messagebox[target.id] = {
-				channel: msg.channel.id,
-				content: target + ", " + msg.author + " said: " + message
-			};
-
-			updateMessagebox();
-			botFunctions.sendMessage(bot, msg.channel, "Message saved.")
-		}
-	},
-	"roles": {
-		help: "Show the public roles managed by the bot.",
-		process: function(args, bot, msg) {
-			var publicRoles = getManageableRoles(bot, msg.channel);
-
-			if (publicRoles.length == 0) {
-				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage any roles.");
-				return;
-			}
-
-			var roleNames = [];
-
-			for (var x=0; x<publicRoles.length; x++) {
-				roleNames.push(publicRoles[x].name);
-			}
-
-			var commandPrefix = botFunctions.getConfigValue(msg.server, "COMMAND_PREFIX");
-			var output = "The following roles can be managed by the bot using the " + commandPrefix + "join and " + commandPrefix + "leave commands:\n";
-			output += "\t" + roleNames.join("\n\t");
-
-			botFunctions.sendMessage(bot, msg.channel, output);
-		}
-	},
-	"join": {
-		usage: "<role>",
-		help: "Join a user role",
-		process: function(args, bot, msg) {
-			function roleHandler(error) {
-				if (error) {
-					console.log("Error: " + error);
-					botFunctions.sendMessage(bot, msg.channel, "I may have not permission to assign this role.");
-				} else {
-					botFunctions.sendMessage(bot, msg.channel, "Done.");
-				}
-			}
-
-			var roleName = botFunctions.compileArgs(args);
-			var role = botFunctions.getRoleByName(msg.server, roleName);
-
-			if (!role) {
-				botFunctions.sendMessage(bot, msg.channel, "The role " + roleName + " is unknown on this server.");
-				return;
-			}
-
-			if (!roleIsManageable(bot, msg.channel, role.id)) {
-				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
-				return;
-			}
-
-			if (bot.memberHasRole(msg.author, role)) {
-				botFunctions.sendMessage(bot, msg.channel, "You already have the role " + roleName + ".");
-				return;
-			}
-
-			try {
-				bot.addMemberToRole(msg.author, role, roleHandler);
-			} catch(e) {
-				console.log(e);
-			}
-		}
-	},
-	"leave": {
-		usage: "<role>",
-		help: "Leave a user role",
-		process: function(args, bot, msg) {
-			function roleHandler(error) {
-				if (error) {
-					console.log("Error: " + error);
-					botFunctions.sendMessage(bot, msg.channel, "I may have not permission to assign this role.");
-				} else {
-					botFunctions.sendMessage(bot, msg.channel, "Done.");
-				}
-			}
-
-			var roleName = botFunctions.compileArgs(args);
-			var role = botFunctions.getRoleByName(msg.server, roleName);
-
-			if (!role) {
-				botFunctions.sendMessage(bot, msg.channel, "The role " + roleName + " is unknown on this server.");
-				return;
-			}
-
-			if (!roleIsManageable(bot, msg.channel, role.id)) {
-				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
-				return;
-			}
-
-			if (!bot.memberHasRole(msg.author, role)) {
-				botFunctions.sendMessage(bot, msg.channel, "You do not have the role " + roleName + ".");
-				return;
-			}
-
-			try {
-				bot.removeMemberFromRole(msg.author, role, roleHandler);
-			} catch(e) {
-				console.log(e);
-			}
-		}
-	},
-	"members": {
-		usage: "<role>",
-		help: "Get the list of users that have the given role.",
-		process: function(args, bot, msg) {
-			var roleName = botFunctions.compileArgs(args);
-			var publicRoles = getManageableRoles(bot, msg.channel);
-			var role = botFunctions.getRoleByName(msg.server, roleName);
-
-			if (!role) {
-				botFunctions.sendMessage(bot, msg.channel, "The role " + roleName + " is unknown on this server.");
-				return;
-			}
-
-			if (!roleIsManageable(bot, msg.channel, role.id)) {
-				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
-				return;
-			}
-
-			var members = msg.server.usersWithRole(role);
-
-			if (members.length == 0) {
-				botFunctions.sendMessage(bot, msg.channel, "The role " + role.name + " has no members.");
-				return;
-			}
-
-			var output = "The role " + role.name + " has " + members.length + " members:\n";
-
-			for (var index=0; index<members.length; index++) {
-				output += "\t" + members[index].name + "\n";
-			}
-
-			botFunctions.sendMessage(bot, msg.channel, "List sent as private message.");
-			botFunctions.sendMessage(bot, msg.author, output);
 		}
 	},
 	"getServers": {
@@ -432,6 +215,38 @@ var commands = {
 			"administrator"
 		]
 	},
+	"getUntaggedUsers": {
+		help: "Get a list of untagged users.",
+		process: function(args, bot, msg) {
+			var serverUsers = msg.server.members;
+			var untaggedUsers = [];
+
+			for (var x=0; x<serverUsers.length; x++) {
+				var userRoles = msg.server.rolesOfUser(serverUsers[x]);
+
+				if (userRoles.length == 0) {
+					untaggedUsers.push(serverUsers[x]);
+				}
+			}
+
+			if (untaggedUsers.length == 0) {
+				botFunctions.sendMessage(bot, msg.channel, "There are no untagged users.");
+				return;
+			}
+
+			var output = "The following " + untaggedUsers.length + " users have no role assigned:\n";
+
+			for (var x=0; x<untaggedUsers.length; x++) {
+				output += "\t" + untaggedUsers[x].name + "\n";
+			}
+
+			botFunctions.sendMessage(bot, msg.channel, "List sent as private message.");
+			botFunctions.sendMessage(bot, msg.author, output);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
 	"getModules": {
 		help: "Get a list of the loaded modules.",
 		process: function(args, bot, msg) {
@@ -557,38 +372,6 @@ var commands = {
 			}
 
 			botFunctions.sendMessage(bot, msg.channel, "The module " + module + " has been enabled.");
-		},
-		permissions: [
-			"administrator"
-		]
-	},
-	"getUntaggedUsers": {
-		help: "Get a list of untagged users.",
-		process: function(args, bot, msg) {
-			var serverUsers = msg.server.members;
-			var untaggedUsers = [];
-
-			for (var x=0; x<serverUsers.length; x++) {
-				var userRoles = msg.server.rolesOfUser(serverUsers[x]);
-
-				if (userRoles.length == 0) {
-					untaggedUsers.push(serverUsers[x]);
-				}
-			}
-
-			if (untaggedUsers.length == 0) {
-				botFunctions.sendMessage(bot, msg.channel, "There are no untagged users.");
-				return;
-			}
-
-			var output = "The following " + untaggedUsers.length + " users have no role assigned:\n";
-
-			for (var x=0; x<untaggedUsers.length; x++) {
-				output += "\t" + untaggedUsers[x].name + "\n";
-			}
-
-			botFunctions.sendMessage(bot, msg.channel, "List sent as private message.");
-			botFunctions.sendMessage(bot, msg.author, output);
 		},
 		permissions: [
 			"administrator"
@@ -1041,6 +824,68 @@ var commands = {
 	},
 };
 
+function handleLogin(error, token) {
+	if (error) {
+		console.log("Error logging in: " + error);
+	}
+
+	if (token) {
+		console.log(VERSION + " logged in with token " + token);
+	}
+}
+
+function handleDisconnect() {
+	console.log("Disconnected.");
+}
+
+function handlePresence(oldUser, newUser) {
+	for (var x=0; x<FGEBot.servers.length; x++) {
+		var serverUser = botFunctions.getUser(FGEBot.servers[x], newUser.id);
+
+		if (serverUser) {
+			for (var key in botFunctions.loadedModules) {
+				if (!botFunctions.moduleIsEnabled(FGEBot.servers[x], key)) {
+					continue;
+				}
+
+				if (botFunctions.loadedModules[key].onPresence) {
+					if (botFunctions.loadedModules[key].onPresence(FGEBot, FGEBot.servers[x], oldUser, newUser)) {
+						return;
+					}
+				}
+			}
+		}
+	}
+}
+
+function handleNewMember(server, user) {
+	for (var key in botFunctions.loadedModules) {
+		if (!botFunctions.moduleIsEnabled(server, key)) {
+			continue;
+		}
+
+		if (botFunctions.loadedModules[key].onNewMember) {
+			if (botFunctions.loadedModules[key].onNewMember(FGEBot, server, user)) {
+				return;
+			}
+		}
+	}
+}
+
+function handleMemberRemoved(server, user) {
+	for (var key in botFunctions.loadedModules) {
+		if (!botFunctions.moduleIsEnabled(server, key)) {
+			continue;
+		}
+
+		if (botFunctions.loadedModules[key].onMemberRemoved) {
+			if (botFunctions.loadedModules[key].onMemberRemoved(FGEBot, server, user)) {
+				return;
+			}
+		}
+	}
+}
+
 function handleMessage(message) {
 	if (message.author == FGEBot.user) {
 		return;
@@ -1075,8 +920,8 @@ function handleMessage(message) {
 			continue;
 		}
 
-		if (botFunctions.loadedModules[key].messageHandler) {
-			if (botFunctions.loadedModules[key].messageHandler(message)) {
+		if (botFunctions.loadedModules[key].onMessage) {
+			if (botFunctions.loadedModules[key].onMessage(FGEBot, message.server, message)) {
 				return;
 			}
 		}
@@ -1118,6 +963,10 @@ function handleMessage(message) {
 		if (!cmd) {
 			for (var key in botFunctions.loadedModules) {
 				if (!botFunctions.moduleIsEnabled(message.server, key)) {
+					continue;
+				}
+
+				if (!botFunctions.loadedModules[key].commands) {
 					continue;
 				}
 
@@ -1178,62 +1027,11 @@ function handleMessage(message) {
 	}
 }
 
-function handleUserStatusChange(oldUser, newUser) {
-	/*if (oldUser && oldUser.game) {
-		console.log("Old: " + oldUser.game.name);
-	}
-
-	if (newUser && newUser.game) {
-		console.log("New: " + newUser.game.name);
-	}
-
-	if (!oldUser.game && newUser.game) {
-		console.log(newUser.name + " has started playing " + newUser.game.name);
-	}
-
-	if (oldUser.game && !newUser.game) {
-		console.log(newUser.name + " has stopped playing " + oldUser.game.name);
-	}*/
-
-	if (newUser.status != "offline") {
-		if (messagebox.hasOwnProperty(newUser.id)) {
-			console.log("Found a message for " + newUser.id);
-			var message = messagebox[user.id];
-			var channel = FGEBot.channels.get("id", message.channel);
-			delete messagebox[user.id];
-			updateMessagebox();
-			botFunctions.sendMessage(FGEBot, channel, message.content);
-		}
-	}
-}
-
-function handleLogin(error, token) {
-	if (error) {
-		console.log("Error logging in: " + error);
-	}
-
-	if (token) {
-		console.log(VERSION + " logged in with token " + token);
-	}
-}
-
-function handleDisconnect() {
-	console.log("Disconnected.");
-}
-
-function handleNewMember(server, user) {
-	//console.log("New user " + user.name + " on server " + server.name);
-}
-
-function handleMemberRemoved(server, user) {
-	//console.log(user.name + " has left the server " + server.name + " or has been removed.");
-}
-
-FGEBot.on("message", handleMessage);
-FGEBot.on("presence", handleUserStatusChange);
 FGEBot.on("disconnected", handleDisconnect);
+FGEBot.on("presence", handlePresence);
 FGEBot.on("serverNewMember", handleNewMember);
 FGEBot.on("serverMemberRemoved", handleMemberRemoved);
+FGEBot.on("message", handleMessage);
 
 FGEBot.login(config.LOGIN, config.PASSWORD, handleLogin);
 
