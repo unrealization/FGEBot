@@ -317,6 +317,16 @@ function getUserMentionRenamed(user) {
 	return output;
 }
 
+function findCommand(commandList, commandName) {
+	for (var key in commandList) {
+		if (key.toLowerCase() == commandName.toLowerCase()) {
+			return commandList[key];
+		}
+	}
+
+	return null;
+}
+
 exports.loadedModules = loadedModules;
 exports.loadModules = loadModules;
 exports.hasModule = hasModule;
@@ -336,3 +346,4 @@ exports.getRoleByName = getRoleByName;
 exports.getUser = getUser;
 exports.getUserByName = getUserByName;
 exports.getUserMentionRenamed = getUserMentionRenamed;
+exports.findCommand = findCommand;

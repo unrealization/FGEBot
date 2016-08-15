@@ -965,7 +965,7 @@ function handleMessage(message) {
 
 	if (processed == 1) {
 		var args = messageContent.split(" ");
-		var cmd = commands[args[0]];
+		var cmd = botFunctions.findCommand(commands, args[0]);
 
 		if (!cmd) {
 			for (var key in botFunctions.loadedModules) {
@@ -977,7 +977,7 @@ function handleMessage(message) {
 					continue;
 				}
 
-				cmd = botFunctions.loadedModules[key].commands[args[0]];
+				cmd = botFunctions.findCommand(botFunctions.loadedModules[key].commands, args[0]);
 
 				if (cmd) {
 					if (botFunctions.loadedModules[key].preprocess) {
