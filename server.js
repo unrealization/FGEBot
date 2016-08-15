@@ -3,7 +3,7 @@ var config = require('./config.js');
 
 var botFunctions = require("./bot_functions.js");
 
-const VERSION = "Jeeves 1.1.0";
+const VERSION = "Jeeves 1.1.1";
 
 botFunctions.loadModules();
 
@@ -56,6 +56,13 @@ var commands = {
 			}
 
 			botFunctions.sendMessage(bot, msg.channel,"Uptime: " + timestr);
+		}
+	},
+	"getUtcTime": {
+		help: "Get the current UTC time.",
+		process: function(args, bot, msg) {
+			var now = new Date();
+			botFunctions.sendMessage(bot, msg.channel, "The current UTC time is: " + now.toUTCString());
 		}
 	},
 	"getServers": {
