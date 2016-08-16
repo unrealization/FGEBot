@@ -11,7 +11,8 @@ try {
 
 function updateMessagebox(){
 	//require("fs").writeFile("../messagebox.json",JSON.stringify(messagebox,null,2), null);
-	require("fs").writeFile("../messagebox.json",JSON.stringify(messagebox,null,2));
+	//require("fs").writeFile("../messagebox.json",JSON.stringify(messagebox,null,2));
+	require("fs").writeFileSync("../messagebox.json",JSON.stringify(messagebox,null,2));
 }
 
 function presenceHandler(bot, server, oldUser, newUser) {

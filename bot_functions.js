@@ -9,7 +9,7 @@ try {
 	dynamicConfig = {
 		"servers": {
 		}
-	}
+	};
 }
 
 var dynamicDefaultConfig = {
@@ -82,7 +82,20 @@ function getModule(server, module) {
 }
 
 function updateDynamicConfig() {
-	require("fs").writeFile("./dynamicConfig.json", JSON.stringify(dynamicConfig, null, 2));
+	var configString = JSON.stringify(dynamicConfig, null, 2);
+
+	if (!configString) {
+		console.log("Error storing the configuration.");
+		return;
+	}
+
+	//require("fs").writeFile("./dynamicConfig.json", configString);
+	require("fs").writeFileSync("./dynamicConfig.json", configString);
+	/*var newConfig = require("./dynamicConfig.json");
+
+	if (newConfig != dynamicConfig) {
+		console.log("Possible config inconsistency.");
+	}*/
 }
 
 function checkConfigOptions(serverConfig, defaultConfig, server) {
@@ -90,6 +103,8 @@ function checkConfigOptions(serverConfig, defaultConfig, server) {
 		if (!serverConfig.hasOwnProperty(key)) {
 			console.log(key + " is missing from the config for server " + server.name);
 			serverConfig[key] = defaultConfig[key];
+			console.log("Setting to: " + defaultConfig[key]);
+			console.log("Verification: " + serverConfig[key]);
 		}
 	}
 
@@ -99,7 +114,7 @@ function checkConfigOptions(serverConfig, defaultConfig, server) {
 function checkDynamicConfig(server) {
 	if (!dynamicConfig["servers"][server.id]) {
 		console.log("Creating default config for server " + server.name);
-		dynamicConfig["servers"][server.id] = dynamicDefaultConfig;
+		dynamicConfig["servers"][server.id] = {};
 	}
 
 	var serverConfig = dynamicConfig["servers"][server.id];
@@ -332,6 +347,7 @@ exports.loadModules = loadModules;
 exports.hasModule = hasModule;
 exports.moduleIsEnabled = moduleIsEnabled;
 exports.getModule = getModule;
+exports.updateDynamicConfig = updateDynamicConfig;
 exports.getConfigValue = getConfigValue;
 exports.setConfigValue = setConfigValue;
 exports.compileArgs = compileArgs;

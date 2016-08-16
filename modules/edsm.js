@@ -18,7 +18,8 @@ try {
 }
 
 function updateEdsmMappings() {
-	require("fs").writeFile("../edsmMappings.json", JSON.stringify(edsmMappings, null, 2));
+	//require("fs").writeFile("../edsmMappings.json", JSON.stringify(edsmMappings, null, 2));
+	require("fs").writeFileSync("../edsmMappings.json", JSON.stringify(edsmMappings, null, 2));
 }
 
 function allowSubmission(bot, server, user) {
@@ -418,6 +419,7 @@ var commands = {
 				botFunctions.sendMessage(bot, msg.channel, "You are not allowed to submit distances.");
 				return;
 			}
+
 			var distance = args.pop();
 			var distanceRegEx = new RegExp('^\\d+(\\.\\d{1,2})?$');
 

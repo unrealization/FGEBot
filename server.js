@@ -3,7 +3,7 @@ var config = require('./config.js');
 
 var botFunctions = require("./bot_functions.js");
 
-const VERSION = "Jeeves 1.1.3";
+const VERSION = "Jeeves 1.2.0";
 
 botFunctions.loadModules();
 
@@ -143,6 +143,15 @@ var commands = {
 			}
 
 			bot.leaveServer(serverObject, callback);
+		},
+		owner: 1
+	},
+	"shutdown": {
+		help: "Shut down the bot.",
+		process: function(args, bot, msg) {
+			botFunctions.sendMessage(bot, msg.channel, "Shutting down...");
+			botFunctions.updateDynamicConfig();
+			process.exit();
 		},
 		owner: 1
 	},
@@ -660,20 +669,15 @@ var commands = {
 
 			var channelNames = [];
 
-			for (var ignoredChannelIndex=0; ignoredChannelIndex<ignoredChannels.length; ignoredChannelIndex++) {
-				var added = 0;
+			for (var x=0; x<ignoredChannels.length; x++) {
+				var serverChannel = botFunctions.getChannel(msg.server, ignoredChannels[x]);
 
-				for (var serverChannelIndex=0; serverChannelIndex<msg.server.channels.length; serverChannelIndex++) {
-					if (ignoredChannels[ignoredChannelIndex] == msg.server.channels[serverChannelIndex].id) {
-						channelNames.push(msg.server.channels[serverChannelIndex].name);
-						added = 1;
-						break;
-					}
-				}
-
-				if (!added) {
+				if (!serverChannel) {
 					channelNames.push("Unknown channel id: " + ignoredChannels[x]);
+					continue;
 				}
+
+				channelNames.push(serverChannel.name);
 			}
 
 			var output = "The following channels are being ignored by this bot:\n\t";

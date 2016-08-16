@@ -5,7 +5,7 @@
   "main": "main.js",
   "dependencies": {
     "discord.io": "^1.13.4",
-    "discord.js": "^8.0.0",
+    "discord.js": "^8.1.0",
     "googleapis": "^2.1.7",
     "node-sumuparticles": "^0.1.4",
     "underscore": "^1.8.3",
