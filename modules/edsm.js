@@ -9,17 +9,14 @@ var defaultModuleConfig = {
 	"EDSM_SUBMIT_REQUIRE_USER": 1,
 };
 
-var edsmMappings;
+var edsmMappings = botFunctions.readJSON("./edsmMappings.json");
 
-try {
-	edsmMappings = require("../edsmMappings.json");
-} catch(e) {
+if (!edsmMappings) {
 	edsmMappings = {};
 }
 
 function updateEdsmMappings() {
-	//require("fs").writeFile("../edsmMappings.json", JSON.stringify(edsmMappings, null, 2));
-	require("fs").writeFileSync("../edsmMappings.json", JSON.stringify(edsmMappings, null, 2));
+	botFunctions.writeJSON(edsmMappings, "./edsmMappings.json");
 }
 
 function allowSubmission(bot, server, user) {

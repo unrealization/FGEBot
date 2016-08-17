@@ -1,11 +1,9 @@
 const MODULES_DIR = "./modules/";
 var loadedModules = {};
 
-var dynamicConfig;
+var dynamicConfig = readJSON("./dynamicConfig.json");
 
-try {
-	dynamicConfig = require("./dynamicConfig.json");
-} catch(e) {
+if (!dynamicConfig) {
 	dynamicConfig = {
 		"servers": {
 		}
@@ -82,20 +80,7 @@ function getModule(server, module) {
 }
 
 function updateDynamicConfig() {
-	var configString = JSON.stringify(dynamicConfig, null, 2);
-
-	if (!configString) {
-		console.log("Error storing the configuration.");
-		return;
-	}
-
-	//require("fs").writeFile("./dynamicConfig.json", configString);
-	require("fs").writeFileSync("./dynamicConfig.json", configString);
-	/*var newConfig = require("./dynamicConfig.json");
-
-	if (newConfig != dynamicConfig) {
-		console.log("Possible config inconsistency.");
-	}*/
+	writeJSON(dynamicConfig, "./dynamicConfig.json");
 }
 
 function checkConfigOptions(serverConfig, defaultConfig, server) {
@@ -342,6 +327,26 @@ function findCommand(commandList, commandName) {
 	return null;
 }
 
+function readJSON(fileName) {
+	try {
+		var data = require(fileName);
+		return data;
+	} catch(e) {
+		return null;
+	}
+}
+
+function writeJSON(data, fileName) {
+	var dataString = JSON.stringify(data, null, 2);
+
+	if (!dataString) {
+		console.log("JSON error");
+		return;
+	}
+
+	require("fs").writeFileSync(fileName, dataString);
+}
+
 exports.loadedModules = loadedModules;
 exports.loadModules = loadModules;
 exports.hasModule = hasModule;
@@ -363,3 +368,5 @@ exports.getUser = getUser;
 exports.getUserByName = getUserByName;
 exports.getUserMentionRenamed = getUserMentionRenamed;
 exports.findCommand = findCommand;
+exports.readJSON = readJSON;
+exports.writeJSON = writeJSON;

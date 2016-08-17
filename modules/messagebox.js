@@ -1,18 +1,13 @@
 var botFunctions = require("../bot_functions.js");
 
-var messagebox;
+var messagebox = botFunctions.readJSON("./messagebox.json");
 
-try {
-	messagebox = require("../messagebox.json");
-} catch(e) {
-	//no stored messages
+if (!messagebox) {
 	messagebox = {};
 }
 
 function updateMessagebox(){
-	//require("fs").writeFile("../messagebox.json",JSON.stringify(messagebox,null,2), null);
-	//require("fs").writeFile("../messagebox.json",JSON.stringify(messagebox,null,2));
-	require("fs").writeFileSync("../messagebox.json",JSON.stringify(messagebox,null,2));
+	botFunctions.writeJSON(messagebox, "./messagebox.json");
 }
 
 function presenceHandler(bot, server, oldUser, newUser) {
