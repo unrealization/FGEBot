@@ -17,13 +17,126 @@ function updateStreamLists() {
 	botFunctions.writeJSON(streamLists, "./streamLists.json");
 }
 
-function presenceHandler(bot, server, oldUser, newUser) {
-	function roleHandler(error) {
-		if (error) {
-			console.log("Cannot auto-assign role to " + newUser.name + ": " + error);
+function findStreamIndex(user, url) {
+	if (!streamLists[user.id]) {
+		return -1;
+	}
+
+	var userStreams = streamLists[user.id];
+
+	for (var x=0; x<userStreams.length; x++) {
+		console.log(userStreams[x].url + " =?= " + url);
+
+		if (userStreams[x].url == url) {
+			return x;
 		}
 	}
 
+	return -1;
+}
+
+function streamSetLive(user, index, live) {
+	if (!streamLists[user.id]) {
+		return;
+	}
+
+	if (!streamLists[user.id][index]) {
+		return;
+	}
+
+	streamLists[user.id][index].live = live;
+	updateStreamLists();
+}
+
+function setLiveRole(bot, server, user) {
+	function roleHandler(error) {
+		if (error) {
+			console.log("Cannot set live role for " + newUser.name + ": " + error);
+		}
+	}
+
+	var liveRole = botFunctions.getConfigValue(server, "LIVE_ROLE");
+
+	if (!liveRole) {
+		return;
+	}
+
+	var serverRole = botFunctions.getRole(server, liveRole);
+
+	if (!serverRole) {
+		return;
+	}
+
+	if (bot.memberHasRole(user, serverRole)) {
+		return;
+	}
+
+	bot.addMemberToRole(user, serverRole, roleHandler);
+}
+
+function unsetLiveRole(bot, server, user) {
+	function roleHandler(error) {
+		if (error) {
+			console.log("Cannot unset live role for " + newUser.name + ": " + error);
+		}
+	}
+
+	var liveRole = botFunctions.getConfigValue(server, "LIVE_ROLE");
+
+	if (!liveRole) {
+		return;
+	}
+
+	var serverRole = botFunctions.getRole(server, liveRole);
+
+	if (!serverRole) {
+		return;
+	}
+
+	if (!bot.memberHasRole(user, serverRole)) {
+		return;
+	}
+
+	bot.removeMemberFromRole(user, serverRole, roleHandler);
+}
+
+function getShoutoutChannel(bot, server, user) {
+	var streamShoutoutChannel = botFunctions.getConfigValue(server, "STREAM_SHOUTOUT_CHANNEL");
+
+	if (!streamShoutoutChannel) {
+		return null;
+	}
+
+	var serverChannel = botFunctions.getChannel(server, streamShoutoutChannel);
+
+	if (!serverChannel) {
+		return null;
+	}
+
+	var shoutoutNeedsRole = botFunctions.getConfigValue(server, "SHOUTOUT_NEEDS_ROLE");
+
+	if (shoutoutNeedsRole == 1) {
+		var streamerRole = botFunctions.getConfigValue(server, "STREAMER_ROLE");
+
+		if (!streamerRole) {
+			return null;
+		}
+
+		var serverRole = botFunctions.getRole(server, streamerRole);
+
+		if (!serverRole) {
+			return null;
+		}
+
+		if (!bot.memberHasRole(user, serverRole)) {
+			return null;
+		}
+	}
+
+	return serverChannel;
+}
+
+function presenceHandler(bot, server, oldUser, newUser) {
 	/*if (oldUser.game && oldUser.game.type != 0) {
 		console.log("Old");
 		console.log(oldUser.game);
@@ -34,89 +147,67 @@ function presenceHandler(bot, server, oldUser, newUser) {
 		console.log(newUser.game);
 	}*/
 
-	var streamShoutoutChannel = botFunctions.getConfigValue(server, "STREAM_SHOUTOUT_CHANNEL");
-
-	if (!streamShoutoutChannel) {
-		return false;
-	}
-
-	var serverChannel = botFunctions.getChannel(server, streamShoutoutChannel);
-
-	if (!serverChannel) {
-		return false;
-	}
-
-	var shoutoutNeedsRole = botFunctions.getConfigValue(server, "SHOUTOUT_NEEDS_ROLE");
-
-	if (shoutoutNeedsRole == 1) {
-		var streamerRole = botFunctions.getConfigValue(server, "STREAMER_ROLE");
-
-		if (!streamerRole) {
-			return false;
-		}
-
-		var serverRole = botFunctions.getRole(server, streamerRole);
-
-		if (!serverRole) {
-			return false;
-		}
-
-		if (!bot.memberHasRole(newUser, serverRole)) {
-			return false;
-		}
-	}
-
 	var oldStreaming = 0;
 	var newStreaming = 0;
+	var live;
+	var user;
 
 	if (oldUser.game && oldUser.game.type > 0) {
 		oldStreaming = 1;
+		live = 0;
+		user = oldUser;
 	}
 
 	if (newUser.game && newUser.game.type > 0) {
 		newStreaming = 1;
+		live = 1;
+		user = newUser;
 	}
 
 	if (oldStreaming == newStreaming) {
 		return false;
 	}
 
-	if (oldStreaming != newStreaming) {
-		var liveRole = botFunctions.getConfigValue(server, "LIVE_ROLE");
-		var serverLiveRole;
-
-		if (liveRole) {
-			serverLiveRole = botFunctions.getRole(server, liveRole);
-		}
-
-		//var output = newUser.mention() + " has ";
-		var output = newUser.name + " has ";
-
-		if (oldStreaming == 1) {
-			output += "stopped streaming " + oldUser.game.name + ".";
-
-			if (serverLiveRole && bot.memberHasRole(newUser, serverLiveRole)) {
-				bot.removeMemberFromRole(newUser, serverLiveRole, roleHandler);
-			}
-		}
-
-		if (newStreaming == 1) {
-			output += "started streaming " + newUser.game.name;
-
-			if (newUser.game.url) {
-				output += " at <" + newUser.game.url + ">";
-			}
-
-			output += ".";
-
-			if (serverLiveRole && !bot.memberHasRole(newUser, serverLiveRole)) {
-				bot.addMemberToRole(newUser, serverLiveRole, roleHandler);
-			}
-		}
-
-		botFunctions.sendMessage(bot, serverChannel, output);
+	if (live == 1) {
+		setLiveRole(bot, server, user);
+	} else {
+		unsetLiveRole(bot, server, user);
 	}
 
+	if (user.game.url) {
+		var streamIndex = findStreamIndex(user, user.game.url);
+
+		if (streamIndex > -1) {
+			streamSetLive(user, streamIndex, live);
+		}
+	}
+
+	var streamShoutoutChannel = getShoutoutChannel(bot, msg.server, msg.author);
+
+	if (!streamShoutoutChannel) {
+		return false;
+	}
+
+	//var output = newUser.mention() + " has ";
+	var output = newUser.name + " has ";
+
+	if (live == 1) {
+		output += "started streaming";
+	} else {
+		output += "stopped streaming";
+	}
+
+	if (user.game.name) {
+		output += " " + user.game.name;
+	}
+
+	if (live == 1 && user.game.url) {
+		output += " at <" + user.game.url + ">";
+	}
+	
+	output += ".";
+
+	botFunctions.sendMessage(bot, streamShoutoutChannel, output);
 	return false;
 }
 
@@ -450,12 +541,6 @@ var commands = {
 		usage: "<streamId>",
 		help: "Start the given stream.",
 		process: function(args, bot, msg) {
-			function roleHandler(error) {
-				if (error) {
-					console.log("Cannot auto-assign role to " + msg.author.name + ": " + error);
-				}
-			}
-
 			var streamId = Number(botFunctions.compileArgs(args));
 
 			if (!streamId) {
@@ -478,56 +563,18 @@ var commands = {
 				return;
 			}
 
-			streamLists[msg.author.id][(streamId-1)].live = 1;
-			updateStreamLists();
-
+			streamSetLive(msg.author, streamId-1, 1);
 			botFunctions.sendMessage(bot, msg.channel, "Your stream has been started.");
+			setLiveRole(bot, msg.server, msg.author);
 
-			var liveRole = botFunctions.getConfigValue(msg.server, "LIVE_ROLE");
-			var serverLiveRole;
-
-			if (liveRole) {
-				serverLiveRole = botFunctions.getRole(msg.server, liveRole);
-			}
-
-			if (serverLiveRole && !bot.memberHasRole(msg.author, serverLiveRole)) {
-				bot.addMemberToRole(msg.author, serverLiveRole, roleHandler);
-			}
-
-			var streamShoutoutChannel = botFunctions.getConfigValue(msg.server, "STREAM_SHOUTOUT_CHANNEL");
+			var streamShoutoutChannel = getShoutoutChannel(bot, msg.server, msg.author);
 
 			if (!streamShoutoutChannel) {
 				return;
 			}
 
-			var serverChannel = botFunctions.getChannel(msg.server, streamShoutoutChannel);
-
-			if (!serverChannel) {
-				return;
-			}
-
-			var shoutoutNeedsRole = botFunctions.getConfigValue(msg.server, "SHOUTOUT_NEEDS_ROLE");
-
-			if (shoutoutNeedsRole == 1) {
-				var streamerRole = botFunctions.getConfigValue(msg.server, "STREAMER_ROLE");
-
-				if (!streamerRole) {
-					return;
-				}
-
-				var serverRole = botFunctions.getRole(msg.server, streamerRole);
-
-				if (!serverRole) {
-					return;
-				}
-
-				if (!bot.memberHasRole(msg.author, serverRole)) {
-					return;
-				}
-			}
-
 			var output = msg.author.name + " has started streaming at <" + streamLists[msg.author.id][(streamId-1)].url + ">.";
-			botFunctions.sendMessage(bot, serverChannel, output);
+			botFunctions.sendMessage(bot, streamShoutoutChannel, output);
 		}
 	},
 	"stopStream": {
@@ -562,56 +609,18 @@ var commands = {
 				return;
 			}
 
-			streamLists[msg.author.id][(streamId-1)].live = 0;
-			updateStreamLists();
-
+			streamSetLive(msg.author, streamId-1, 0);
 			botFunctions.sendMessage(bot, msg.channel, "Your stream has been stopped.");
+			unsetLiveRole(bot, msg.server, msg.author);
 
-			var liveRole = botFunctions.getConfigValue(msg.server, "LIVE_ROLE");
-			var serverLiveRole;
-
-			if (liveRole) {
-				serverLiveRole = botFunctions.getRole(msg.server, liveRole);
-			}
-
-			if (serverLiveRole && bot.memberHasRole(msg.author, serverLiveRole)) {
-				bot.removeMemberFromRole(msg.author, serverLiveRole, roleHandler);
-			}
-
-			var streamShoutoutChannel = botFunctions.getConfigValue(msg.server, "STREAM_SHOUTOUT_CHANNEL");
+			var streamShoutoutChannel = getShoutoutChannel(bot, msg.server, msg.author);
 
 			if (!streamShoutoutChannel) {
 				return;
 			}
 
-			var serverChannel = botFunctions.getChannel(msg.server, streamShoutoutChannel);
-
-			if (!serverChannel) {
-				return;
-			}
-
-			var shoutoutNeedsRole = botFunctions.getConfigValue(msg.server, "SHOUTOUT_NEEDS_ROLE");
-
-			if (shoutoutNeedsRole == 1) {
-				var streamerRole = botFunctions.getConfigValue(msg.server, "STREAMER_ROLE");
-
-				if (!streamerRole) {
-					return;
-				}
-
-				var serverRole = botFunctions.getRole(msg.server, streamerRole);
-
-				if (!serverRole) {
-					return;
-				}
-
-				if (!bot.memberHasRole(msg.author, serverRole)) {
-					return;
-				}
-			}
-
 			var output = msg.author.name + " has stopped streaming.";
-			botFunctions.sendMessage(bot, serverChannel, output);
+			botFunctions.sendMessage(bot, streamShoutoutChannel, output);
 		}
 	},
 };
