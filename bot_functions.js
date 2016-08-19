@@ -181,7 +181,7 @@ function sendMessage(bot, channel, message) {
 	}
 }
 
-function checkPermission(channel, user, permission) {
+function checkChannelPermission(channel, user, permission) {
 	if (channel.isPrivate) {
 		return false;
 	}
@@ -357,7 +357,7 @@ exports.getConfigValue = getConfigValue;
 exports.setConfigValue = setConfigValue;
 exports.compileArgs = compileArgs;
 exports.sendMessage = sendMessage;
-exports.checkPermission = checkPermission;
+exports.checkChannelPermission = checkChannelPermission;
 exports.getServer = getServer;
 exports.getServerByName = getServerByName;
 exports.getChannel = getChannel;

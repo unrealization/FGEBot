@@ -1,14 +1,14 @@
 var botFunctions = require("../bot_functions.js");
 
+var defaultModuleConfig = {
+	"AUTO_ROLE": "",
+};
+
 function getManageableRoles(bot, channel) {
 	var manageableRoles = [];
 
-	if (!botFunctions.checkPermission(channel, bot.user, "manageRoles")) {
-		return manageableRoles;
-	}
-
 	var botRoles = channel.server.rolesOfUser(bot.user);
-	var rolePosition;
+	var rolePosition = -1;
 
 	for (var x=0; x<botRoles.length; x++) {
 		if (botRoles[x].hasPermission("manageRoles") && (!rolePosition || botRoles[x].position<rolePosition)) {
@@ -16,10 +16,14 @@ function getManageableRoles(bot, channel) {
 		}
 	}
 
+	if (rolePosition == -1) {
+		return manageableRoles;
+	}
+
 	var serverRoles = channel.server.roles;
 
 	for (var x=0; x<serverRoles.length; x++) {
-		if (serverRoles[x].name == "@everyone") {
+		if (serverRoles[x].position == -1) {
 			continue;
 		}
 
@@ -41,6 +45,34 @@ function roleIsManageable(bot, channel, roleId) {
 	}
 
 	return 0;
+}
+
+function newMemberHandler(bot, server, user) {
+	function roleHandler(error) {
+		if (error) {
+			console.log("Error: " + error);
+		}
+	}
+
+	console.log(user.name + " joined " + server.name);
+
+	var autoRole = botFunctions.getConfigValue(server, "AUTO_ROLE");
+
+	if (!autoRole) {
+		return false;
+	}
+
+	var serverRole = botFunctions.getRole(server, autoRole);
+
+	if (!serverRole) {
+		return false;
+	}
+
+	if (!bot.memberHasRole(user, serverRole)) {
+		bot.addMemberToRole(user, serverRole, roleHandler);
+	}
+
+	return false;
 }
 
 var commands = {
@@ -178,6 +210,65 @@ var commands = {
 			botFunctions.sendMessage(bot, msg.author, output);
 		}
 	},
+	"getAutoRole": {
+		help: "Get the role that will be automatically assigned to new users on this Discord.",
+		process: function(args, bot, msg) {
+			var autoRole = botFunctions.getConfigValue(msg.server, "AUTO_ROLE");
+
+			if (!autoRole) {
+				botFunctions.sendMessage(bot, msg.channel, "No role has been set for automatic assignment.");
+				return;
+			}
+
+			var role = botFunctions.getRole(msg.server, autoRole);
+
+			if (!role) {
+				botFunctions.sendMessage(bot, msg.channel, "A role is set, but it does not exist on this server.");
+				return;
+			}
+
+			botFunctions.sendMessage(bot, msg.channel, "New users will be assigned the role: " + role.name);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"setAutoRole": {
+		usage: "[role]",
+		help: "Set a role, or none, that will be automatically assigned to new users on this Discord.",
+		process: function(args, bot, msg) {
+			var role = botFunctions.compileArgs(args);
+
+			if (!role) {
+				if (!botFunctions.setConfigValue(msg.server, "AUTO_ROLE", "")) {
+					botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+					return;
+				}
+
+				botFunctions.sendMessage(bot, msg.channel, "The role for automatic assignment has been cleared.");
+				return;
+			}
+
+			var serverRole = botFunctions.getRoleByName(msg.server, role);
+
+			if (!serverRole) {
+				botFunctions.sendMessage(bot, msg.channel, "Cannot find the role " + role);
+				return;
+			}
+
+			if (!botFunctions.setConfigValue(msg.server, "AUTO_ROLE", serverRole.id)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+				return;
+			}
+
+			botFunctions.sendMessage(bot, msg.channel, "New users will be assigned the role: " + serverRole.name);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
 };
 
+exports.defaultModuleConfig = defaultModuleConfig;
+exports.onNewMember = newMemberHandler;
 exports.commands = commands;

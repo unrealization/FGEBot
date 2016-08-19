@@ -3,7 +3,7 @@ var config = require('./config.js');
 
 var botFunctions = require("./bot_functions.js");
 
-const VERSION = "Jeeves 1.2.2";
+const VERSION = "Jeeves 1.2.3";
 
 botFunctions.loadModules();
 
@@ -197,7 +197,7 @@ var commands = {
 				}
 			}
 
-			if (!botFunctions.checkPermission(serverChannel, bot.user, "manageMessages")) {
+			if (!botFunctions.checkChannelPermission(serverChannel, bot.user, "manageMessages")) {
 				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage messages in " + serverChannel.name);
 				return;
 			}
