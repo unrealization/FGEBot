@@ -11,7 +11,7 @@ function getManageableRoles(bot, channel) {
 	var rolePosition = -1;
 
 	for (var x=0; x<botRoles.length; x++) {
-		if (botRoles[x].hasPermission("manageRoles") && (!rolePosition || botRoles[x].position<rolePosition)) {
+		if (botRoles[x].hasPermission("manageRoles") && (rolePosition == -1 || botRoles[x].position<rolePosition)) {
 			rolePosition = botRoles[x].position;
 		}
 	}
