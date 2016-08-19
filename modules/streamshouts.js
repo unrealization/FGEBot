@@ -188,8 +188,8 @@ function presenceHandler(bot, server, oldUser, newUser) {
 		return false;
 	}
 
-	//var output = newUser.mention() + " has ";
-	var output = newUser.name + " has ";
+	//var output = user.mention() + " has ";
+	var output = user.name + " has ";
 
 	if (live == 1) {
 		output += "started streaming";

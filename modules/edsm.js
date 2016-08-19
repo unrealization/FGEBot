@@ -58,10 +58,17 @@ function allowSubmission(bot, server, user) {
 }
 
 function getEdsmUser(user) {
-	if (!edsmMappings[user]) {
+	if (edsmMappings[user.mention()]) {
+		console.log("Updating EDSM mapping.");
+		edsmMappings[user.id] = edsmMappings[user.mention()]
+		delete edsmMappings[user.mention()];
+		updateEdsmMappings();
+	}
+
+	if (!edsmMappings[user.id]) {
 		return null;
 	} else {
-		return edsmMappings[user];
+		return edsmMappings[user.id];
 	}
 }
 
@@ -339,7 +346,7 @@ var commands = {
 				return;
 			}
 
-			edsmMappings[msg.author] = edsmUser;
+			edsmMappings[msg.author.id] = edsmUser;
 			updateEdsmMappings();
 			botFunctions.sendMessage(bot, msg.channel, "Mapping stored.");
 		}
@@ -347,10 +354,10 @@ var commands = {
 	"unregister": {
 		help: "Delete the mapping from your Discord user to your EDSM user.",
 		process: function(args, bot, msg) {
-			if (!edsmMappings[msg.author]) {
+			if (!edsmMappings[msg.author.id]) {
 				bot.sendMessage(msg.channel, "No EDSM Username found.");
 			} else {
-				delete edsmMappings[msg.author];
+				delete edsmMappings[msg.author.id];
 				updateEdsmMappings();
 				botFunctions.sendMessage(bot, msg.channel, "Mapping removed.");
 			}
@@ -360,17 +367,22 @@ var commands = {
 		usage: "[name]",
 		help: "Get your or the given user's EDSM Username.",
 		process: function(args, bot, msg) {
-			args.shift();
-			var user = args.join(" ");
+			var user = botFunctions.compileArgs(args);
+			var serverUser = msg.author;
 
-			if (!user) {
-				user = msg.author;
+			if (user) {
+				var serverUser = botFunctions.getUserByName(msg.server, user);
+
+				if (!serverUser) {
+					botFunctions.sendMessage(bot, msg.channel, "I cannot find the user " + user);
+					return;
+				}
 			}
 
-			edsmUser = getEdsmUser(user);
+			var edsmUser = getEdsmUser(serverUser);
 
 			if (!edsmUser) {
-				botFunctions.sendMessage(bot, msg.channel, "No EDSM Username found for " + user);
+				botFunctions.sendMessage(bot, msg.channel, "No EDSM Username found for " + serverUser.name);
 			} else {
 				botFunctions.sendMessage(bot, msg.channel, edsmUser);
 			}

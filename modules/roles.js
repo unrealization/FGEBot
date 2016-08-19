@@ -54,8 +54,6 @@ function newMemberHandler(bot, server, user) {
 		}
 	}
 
-	console.log(user.name + " joined " + server.name);
-
 	var autoRole = botFunctions.getConfigValue(server, "AUTO_ROLE");
 
 	if (!autoRole) {
@@ -67,6 +65,8 @@ function newMemberHandler(bot, server, user) {
 	if (!serverRole) {
 		return false;
 	}
+
+	console.log(user.name + " joined " + server.name);
 
 	if (!bot.memberHasRole(user, serverRole)) {
 		bot.addMemberToRole(user, serverRole, roleHandler);
