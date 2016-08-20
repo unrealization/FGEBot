@@ -182,7 +182,7 @@ function presenceHandler(bot, server, oldUser, newUser) {
 		}
 	}
 
-	var streamShoutoutChannel = getShoutoutChannel(bot, server, author);
+	var streamShoutoutChannel = getShoutoutChannel(bot, server, user);
 
 	if (!streamShoutoutChannel) {
 		return false;
