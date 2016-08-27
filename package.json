@@ -1,7 +1,7 @@
 {
-  "name": "FGEBot",
-  "version": "0.3.2",
-  "description": "Discord bot for the First Great Expedition",
+  "name": "Jeeves",
+  "version": "1.2.7",
+  "description": "Discord bot for the August Exodus - A Jaunt to Jaques",
   "main": "main.js",
   "dependencies": {
     "discord.io": "^1.13.4",
@@ -12,12 +12,12 @@
     "url": "^0.11.0",
     "trello-events": "^0.1.6",
     "redis": "^2.4.2",
-    "node-rest-client": "^2.0.1"
+    "node-rest-client": "^2.0.1",
   },
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Jim Anderson",
+  "author": "Dennis Wronka",
   "license": "ISC"
 }

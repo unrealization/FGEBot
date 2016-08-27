@@ -155,7 +155,7 @@ var commands = {
 		},
 		owner: 1
 	},
-	/*"clearChannel": {
+	"clearChannel": {
 		usage: "[channel]",
 		help: "Clear the given, or current, channel.",
 		process: function(args, bot, msg) {
@@ -166,8 +166,7 @@ var commands = {
 					return;
 				}
 
-				//bot.getChannelLogs(serverChannel, 50, {}, logHandler);
-				bot.getChannelLogs(serverChannel, 1, {}, logHandler);
+				//bot.getChannelLogs(serverChannel, 100, {}, logHandler);
 			}
 
 			function logHandler(error, messages) {
@@ -202,13 +201,12 @@ var commands = {
 				return;
 			}
 
-			//bot.getChannelLogs(serverChannel, 50, {}, logHandler);
-			bot.getChannelLogs(serverChannel, 1, {}, logHandler);
+			bot.getChannelLogs(serverChannel, 100, {}, logHandler);
 		},
 		permissions: [
 			"administrator"
 		]
-	},*/
+	},
 	"getUserId": {
 		usage: "[user]",
 		help: "Get the ID of the given user or yourself.",
@@ -841,7 +839,8 @@ function handleLogin(error, token) {
 	}
 
 	if (token) {
-		console.log(VERSION + " logged in with token " + token);
+		//console.log(VERSION + " logged in with token " + token);
+		console.log(VERSION + " successfully logged in.");
 	}
 }
 
@@ -1044,7 +1043,11 @@ FGEBot.on("serverNewMember", handleNewMember);
 FGEBot.on("serverMemberRemoved", handleMemberRemoved);
 FGEBot.on("message", handleMessage);
 
-FGEBot.login(config.LOGIN, config.PASSWORD, handleLogin);
+if (config.TOKEN) {
+	FGEBot.loginWithToken(config.TOKEN, null, null, handleLogin);
+} else {
+	FGEBot.login(config.LOGIN, config.PASSWORD, handleLogin);
+}
 
 if (config.USE_TRELLO) {
 	console.log("Activating trello integration");

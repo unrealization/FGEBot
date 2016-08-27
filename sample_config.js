@@ -1,7 +1,9 @@
-const LOGIN = "LOGIN_HERE";
-const PASSWORD = "PASSWORD_HERE";
-const RESPOND_TO_PRIVATEMESSAGES = 0;
+const TOKEN = "";
+const LOGIN = "";
+const PASSWORD = "";
 const OWNER_ID = "";
+
+const RESPOND_TO_PRIVATEMESSAGES = 0;
 
 const USE_TRELLO = false;
 const TRELLO_KEY = 'TRELLO_KEY';
@@ -17,10 +19,12 @@ const TRELLO_BOARDS = [
 	}
 ];
 
+module.exports.TOKEN = TOKEN;
 module.exports.LOGIN = LOGIN;
 module.exports.PASSWORD = PASSWORD;
-module.exports.RESPOND_TO_PRIVATEMESSAGES = RESPOND_TO_PRIVATEMESSAGES;
 module.exports.OWNER_ID = OWNER_ID;
+
+module.exports.RESPOND_TO_PRIVATEMESSAGES = RESPOND_TO_PRIVATEMESSAGES;
 
 module.exports.USE_TRELLO = USE_TRELLO;
 module.exports.TRELLO_KEY = TRELLO_KEY;
