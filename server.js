@@ -3,7 +3,7 @@ var config = require('./config.js');
 
 var botFunctions = require("./bot_functions.js");
 
-const VERSION = "Jeeves 1.3.0";
+const VERSION = "Jeeves 1.4.0";
 
 botFunctions.loadModules();
 
@@ -155,6 +155,78 @@ var commands = {
 		},
 		owner: 1
 	},
+	"findMediaLinks": {
+		usage: "[channe]",
+		help: "Find images and videos in the given, or current, channel.",
+		process: function(args, bot, msg) {
+			function logHandler(error, messages) {
+				if (error) {
+					console.log("Error: " + error);
+					botFunctions.sendMessage(bot, msg.channel, "There was an error retrieving messages from " + serverChannel.name);
+					return;
+				}
+
+				if (messages.length == 0) {
+					botFunctions.sendMessage(bot, msg.channel, serverChannel.name + " is empty.");
+					return;
+				}
+
+				var links = [];
+
+				for (var x=0; x<messages.length; x++) {
+					if (messages[x].embeds && messages[x].embeds.length > 0) {
+						for (var i=0; i<messages[x].embeds.length; i++) {
+							if (messages[x].embeds[i].type == "image" || messages[x].embeds[i].type == "video") {
+								links.push(messages[x].embeds[i].url);
+							}
+						}
+					}
+
+					if (messages[x].attachments && messages[x].attachments.length > 0) {
+						for (var i=0; i<messages[x].attachments.length; i++) {
+							if (messages[x].attachments[i].width && messages[x].attachments[i].height) {
+								links.push(messages[x].attachments[i].url);
+							}
+						}
+					}
+				}
+
+				var outputList = [];
+
+				for (var x=0; x<links.length; x++) {
+					if (outputList.indexOf(links[x]) == -1) {
+						outputList.push("<" + links[x] + ">");
+					}
+				}
+
+				if (outputList.length == 0) {
+					botFunctions.sendMessage(bot, msg.channel, "Nothing found.");
+					return;
+				}
+
+				var output = outputList.join("\n");
+				botFunctions.sendMessage(bot, msg.author, output);
+				botFunctions.sendMessage(bot, msg.channel, "List sent as private message.");
+			}
+
+			var channel = botFunctions.compileArgs(args);
+			var serverChannel = msg.channel;
+
+			if (channel) {
+				serverChannel = botFunctions.getChannelByName(msg.server, channel);
+
+				if (!serverChannel) {
+					botFunctions.sendMessage(bot, msg.channel, "Cannot find the channel " + channel);
+					return;
+				}
+			}
+
+			bot.getChannelLogs(serverChannel, 100, {}, logHandler);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
 	"clearChannel": {
 		usage: "[channel]",
 		help: "Clear the given, or current, channel.",
@@ -167,6 +239,10 @@ var commands = {
 				}
 
 				//bot.getChannelLogs(serverChannel, 100, {}, logHandler);
+
+				if (serverChannel.id != msg.channel.id) {
+					botFunctions.sendMessage(bot, msg.channel, "Deleted some messages from " + serverChannel.name);
+				}
 			}
 
 			function logHandler(error, messages) {
@@ -177,7 +253,7 @@ var commands = {
 				}
 
 				if (messages.length == 0) {
-					botFunctions.sendMessage(bot, msg.channel, serverChannel.name + " has been cleared.");
+					botFunctions.sendMessage(bot, msg.channel, serverChannel.name + " is empty.");
 					return;
 				}
 
