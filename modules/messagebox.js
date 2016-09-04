@@ -1,5 +1,7 @@
 var botFunctions = require("../bot_functions.js");
 
+const VERSION = "0.5 Beta";
+
 var messagebox = botFunctions.readJSON("./messagebox.json");
 
 if (!messagebox) {
@@ -54,5 +56,6 @@ var commands = {
 	},
 };
 
+exports.VERSION = VERSION;
 exports.onPresence = presenceHandler;
 exports.commands = commands;

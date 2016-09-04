@@ -1,5 +1,7 @@
 var botFunctions = require("../bot_functions.js");
 
+const VERSION = "1.0";
+
 var defaultModuleConfig = {
 	"STREAM_SHOUTOUT_CHANNEL": "",
 	"STREAMER_ROLE": "",
@@ -625,6 +627,7 @@ var commands = {
 	},
 };
 
+exports.VERSION = VERSION;
 exports.defaultModuleConfig = defaultModuleConfig;
 exports.onPresence = presenceHandler;
 exports.commands = commands;

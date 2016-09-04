@@ -15,12 +15,9 @@ var dynamicDefaultConfig = {
 	"NAME_SEPARATOR": ":",
 	"RESPOND_TO_COMMANDS": 1,
 	"RESPOND_TO_MENTIONS": 1,
-	"DISABLED_MODULES": [
-	],
-	"IGNORE_USERS": [
-	],
-	"IGNORE_CHANNELS": [
-	],
+	"DISABLED_MODULES": [],
+	"IGNORE_USERS": [],
+	"IGNORE_CHANNELS": [],
 };
 
 function loadModules() {

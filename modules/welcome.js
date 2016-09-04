@@ -1,5 +1,7 @@
 var botFunctions = require("../bot_functions.js");
 
+const VERSION = "1.0";
+
 var defaultModuleConfig = {
 	"WELCOME_CHANNEL": "",
 };
@@ -59,6 +61,7 @@ var commands = {
 	},
 };
 
+exports.VERSION = VERSION;
 exports.defaultModuleConfig = defaultModuleConfig;
 exports.onNewMember = newMemberHandler;
 exports.commands = commands;

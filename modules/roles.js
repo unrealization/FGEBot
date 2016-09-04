@@ -1,7 +1,10 @@
 var botFunctions = require("../bot_functions.js");
 
+const VERSION = "1.0";
+
 var defaultModuleConfig = {
 	"AUTO_ROLE": "",
+	"LOCKED_ROLES": [],
 };
 
 function getManageableRoles(bot, channel) {
@@ -33,6 +36,20 @@ function getManageableRoles(bot, channel) {
 	}
 
 	return manageableRoles;
+}
+
+function isLocked(server, roleId) {
+	var lockedRoles = botFunctions.getConfigValue(server, "LOCKED_ROLES");
+
+	if (lockedRoles.length == 0) {
+		return false;
+	}
+
+	if (lockedRoles.indexOf(roleId) > -1) {
+		return true;
+	}
+
+	return false;
 }
 
 function roleIsManageable(bot, channel, roleId) {
@@ -89,7 +106,16 @@ var commands = {
 			var roleNames = [];
 
 			for (var x=0; x<publicRoles.length; x++) {
+				if (isLocked(msg.server, publicRoles[x].id)) {
+					continue;
+				}
+
 				roleNames.push(publicRoles[x].name);
+			}
+
+			if (roleNames.length == 0) {
+				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage any roles.");
+				return;
 			}
 
 			var commandPrefix = botFunctions.getConfigValue(msg.server, "COMMAND_PREFIX");
@@ -122,6 +148,11 @@ var commands = {
 
 			if (!roleIsManageable(bot, msg.channel, role.id)) {
 				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
+				return;
+			}
+
+			if (isLocked(msg.server, role.id)) {
+				botFunctions.sendMessage(bot, msg.channel, "The role " + role.name + " is locked.");
 				return;
 			}
 
@@ -193,6 +224,11 @@ var commands = {
 				return;
 			}
 
+			if (isLocked(msg.server, role.id)) {
+				botFunctions.sendMessage(bot, msg.channel, "The role " + role.name + " is locked.");
+				return;
+			}
+
 			var members = msg.server.usersWithRole(role);
 
 			if (members.length == 0) {
@@ -256,6 +292,11 @@ var commands = {
 				return;
 			}
 
+			if (!roleIsManageable(bot, msg.channel, serverRole.id)) {
+				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
+				return;
+			}
+
 			if (!botFunctions.setConfigValue(msg.server, "AUTO_ROLE", serverRole.id)) {
 				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
 				return;
@@ -267,8 +308,123 @@ var commands = {
 			"administrator"
 		]
 	},
+	"getLockedRoles": {
+		help: "Get the list of locked roles.",
+		process: function(args, bot, msg) {
+			var lockedRoles = botFunctions.getConfigValue(msg.server, "LOCKED_ROLES");
+
+			if (lockedRoles.length == 0) {
+				botFunctions.sendMessage(bot, msg.channel, "There are no locked roles.");
+				return;
+			}
+
+			var roleNames = [];
+
+			for (var x=0; x<lockedRoles.length; x++) {
+				var serverRole = botFunctions.getRole(msg.server, lockedRoles[x]);
+
+				if (!serverRole) {
+					roleNames.push("Unknown role id: " + lockedRoles[x]);
+					continue;
+				}
+
+				roleNames.push(serverRole.name);
+			}
+
+			var output = "The following roles are locked:\n\t";
+			output += roleNames.join("\n\t");
+
+			botFunctions.sendMessage(bot, msg.channel, output);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"lockRole": {
+		usage: "<role>",
+		help: "Disable public use for a role the bot is allowed to manage.",
+		process: function(args, bot, msg) {
+			var role = botFunctions.compileArgs(args);
+
+			if (!role) {
+				botFunctions.sendMessage(bot, msg.channel, "You need to specify the role you want to lock.");
+				return;
+			}
+
+			var serverRole = botFunctions.getRoleByName(msg.server, role);
+
+			if (!serverRole) {
+				botFunctions.sendMessage(bot, msg.channel, "Cannot find the role " + role);
+				return;
+			}
+
+			if (!roleIsManageable(bot, msg.channel, serverRole.id)) {
+				botFunctions.sendMessage(bot, msg.channel, "I am not allowed to manage this role.");
+				return;
+			}
+
+			var lockedRoles = botFunctions.getConfigValue(msg.server, "LOCKED_ROLES");
+
+			if (lockedRoles.indexOf(serverRole.id) > -1) {
+				botFunctions.sendMessage(bot, msg.channel, "The role " + serverRole.name + " is already locked.");
+				return;
+			}
+
+			lockedRoles.push(serverRole.id);
+
+			if (!botFunctions.setConfigValue(msg.server, "LOCKED_ROLES", lockedRoles)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+				return;
+			}
+
+			botFunctions.sendMessage(bot, msg.channel, "The role " + serverRole.name + " is now locked.");
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"unlockRole": {
+		usage: "<role>",
+		help: "Enable public use of a role the bot is allowed to manage.",
+		process: function(args, bot, msg) {
+			var role = botFunctions.compileArgs(args);
+
+			if (!role) {
+				botFunctions.sendMessage(bot, msg.channel, "You need to specify the role you want to unlock.");
+				return;
+			}
+
+			var serverRole = botFunctions.getRoleByName(msg.server, role);
+
+			if (!serverRole) {
+				botFunctions.sendMessage(bot, msg.channel, "Cannot find the role " + role);
+				return;
+			}
+
+			var lockedRoles = botFunctions.getConfigValue(msg.server, "LOCKED_ROLES");
+			var roleIndex = lockedRoles.indexOf(serverRole.id);
+
+			if (roleIndex == -1) {
+				botFunctions.sendMessage(bot, msg.channel, "The role " + serverRole.name + " is not locked.");
+				return;
+			}
+
+			lockedRoles.splice(roleIndex, 1);
+
+			if (!botFunctions.setConfigValue(msg.server, "LOCKED_ROLES", lockedRoles)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+				return;
+			}
+
+			botFunctions.sendMessage(bot, msg.channel, "The role " + serverRole.name + " is now no longer locked.");
+		},
+		permissions: [
+			"administrator"
+		]
+	},
 };
 
+exports.VERSION = VERSION;
 exports.defaultModuleConfig = defaultModuleConfig;
 exports.onNewMember = newMemberHandler;
 exports.commands = commands;

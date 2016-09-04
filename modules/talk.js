@@ -1,5 +1,7 @@
 var botFunctions = require("../bot_functions.js");
 
+const VERSION = "0.2 Beta";
+
 var talkList = [];
 
 function isTalking(server, user) {
@@ -91,5 +93,6 @@ var commands = {
 	},
 };
 
+exports.VERSION = VERSION;
 exports.onMessage = messageHandler;
 exports.commands = commands;

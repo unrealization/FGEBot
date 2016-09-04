@@ -3,7 +3,7 @@ var config = require('./config.js');
 
 var botFunctions = require("./bot_functions.js");
 
-const VERSION = "Jeeves 1.5.0";
+const VERSION = "Jeeves 1.6.0";
 
 botFunctions.loadModules();
 
@@ -348,7 +348,13 @@ var commands = {
 					continue;
 				}
 
-				activeModules.push(key);
+				var moduleName = key;
+
+				if (botFunctions.loadedModules[key].VERSION) {
+					moduleName += " " + botFunctions.loadedModules[key].VERSION;
+				}
+
+				activeModules.push(moduleName);
 			}
 
 			if (activeModules.length == 0) {
@@ -379,7 +385,13 @@ var commands = {
 
 			for (var x=0; x<disabledModules.length; x++) {
 				if (botFunctions.hasModule(disabledModules[x])) {
-					moduleNames.push(disabledModules[x]);
+					var moduleName = disabledModules[x];
+
+					if (botFunctions.loadedModules[disabledModules[x]].VERSION) {
+						moduleName += " " + botFunctions.loadedModules[disabledModules[x]].VERSION;
+					}
+
+					moduleNames.push(moduleName);
 				}
 			}
 
@@ -878,7 +890,13 @@ var commands = {
 				var moduleCommands = botFunctions.loadedModules[moduleKey].commands;
 
 				if (moduleCommands) {
-					output += "\n" + moduleKey + " commands:\n"
+					output += "\n" + moduleKey;
+
+					if (botFunctions.loadedModules[moduleKey].VERSION) {
+						output += " " + botFunctions.loadedModules[moduleKey].VERSION;
+					}
+
+					output += " commands:\n"
 
 					for (var key in moduleCommands) {
 						output += "\t" + commandPrefix + key;

@@ -1,6 +1,8 @@
 var edsm = require("../api/edsm.js");
 var botFunctions = require("../bot_functions.js");
 
+const VERSION = "1.0";
+
 var defaultModuleConfig = {
 	"EDSM_USE_BETASERVER": 1,
 	"TRILATERATION_CONTACT_ROLE": "",
@@ -696,8 +698,9 @@ var commands = {
 	},
 };
 
-exports.getEdsmUser = getEdsmUser;
-
+exports.VERSION = VERSION;
 exports.defaultModuleConfig = defaultModuleConfig;
 exports.commands = commands;
 exports.preprocess = setUseBetaServer;
+
+exports.getEdsmUser = getEdsmUser;

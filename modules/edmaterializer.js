@@ -1,6 +1,8 @@
 var edmaterializer = require("../api/edmaterializer.js");
 var botFunctions = require("../bot_functions.js");
 
+const VERSION = "1.0";
+
 var defaultModuleConfig = {
 	"EDMATERIALIZER_USE_BETASERVER": 0,
 };
@@ -53,6 +55,7 @@ var commands = {
 	},
 };
 
+exports.VERSION = VERSION;
 exports.defaultModuleConfig = defaultModuleConfig;
 exports.commands = commands;
 exports.preprocess = setUseBetaServer;

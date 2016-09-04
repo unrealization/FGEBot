@@ -1,5 +1,7 @@
 var botFunctions = require("../bot_functions.js");
 
+const VERSION = "1.0";
+
 var defaultModuleConfig = {
 	"RATSIGNAL_CONTACT_ROLE": "",
 	"RATSIGNAL_EMERGENCY_CHANNEL": "",
@@ -230,5 +232,6 @@ var commands = {
 	},
 };
 
+exports.VERSION = VERSION;
 exports.defaultModuleConfig = defaultModuleConfig;
 exports.commands = commands;
