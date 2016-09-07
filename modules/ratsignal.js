@@ -1,6 +1,6 @@
 var botFunctions = require("../bot_functions.js");
 
-const VERSION = "1.0";
+const VERSION = "1.1";
 
 var defaultModuleConfig = {
 	"RATSIGNAL_CONTACT_ROLE": "",
@@ -12,62 +12,69 @@ var commands = {
 	"ratsignal": {
 		help: "Send an emergency call to the Fuel Rats",
 		process: function(args, bot, msg) {
-			function callback(error, message) {
-				var edsm = botFunctions.getModule(msg.server, "edsm");
-
-				if (edsm) {
-					console.log("Ratsignal EDSM support enabled.");
-					var edsmUser = edsm.getEdsmUser(msg.author);
-
-					if (edsmUser) {
-						//edsm.getCommanderCoordinates(edsmUser, bot, message);
-					}
-				}
-			}
-
 			var ratsignalContactRole = botFunctions.getConfigValue(msg.server, "RATSIGNAL_CONTACT_ROLE");
+			var serverRole;
 
-			if (!ratsignalContactRole) {
-				botFunctions.sendMessage(bot, msg.channel, "Sadly there is nobody here to help you.");
-				return;
+			if (ratsignalContactRole) {
+				serverRole = botFunctions.getRole(msg.server, ratsignalContactRole);
 			}
-
-			var role = botFunctions.getRole(msg.server, ratsignalContactRole);
-
-			if (!role) {
-				botFunctions.sendMessage(bot, msg.channel, "Sadly there is nobody here to help you.");
-				return;
-			}
-
-			var output = role.mention() + " RAT SIGNAL\n";
-			output += msg.author + " has run out of fuel and is in need of assistance!";
-
-			var channel = msg.channel;
-			var ratsignalEmergencyChannel = botFunctions.getConfigValue(msg.server, "RATSIGNAL_EMERGENCY_CHANNEL");
-
-			if (ratsignalEmergencyChannel) {
-				var serverChannels = msg.server.channels;
-
-				for (var index=0; index<serverChannels.length; index++) {
-					if (serverChannels[index].id == ratsignalEmergencyChannel) {
-						channel = serverChannels[index];
-						break;
-					}
-				}
-			}
-
-			bot.sendMessage(channel, output, {}, callback);
-
-			output = msg.author.mention() + ", a rat signal has been sent.\n";
 
 			var ratsignalFuelProcedureLink = botFunctions.getConfigValue(msg.server, "RATSIGNAL_FUEL_PROCEDURE_LINK");
 
-			if (ratsignalFuelProcedureLink) {
-				output += "Stay calm and refer to the Emergency Fuel Procedures detailled here: " + ratsignalFuelProcedureLink + "\n";
+			if (!serverRole && !ratsignalFuelProcedureLink) {
+				botFunctions.sendMessage(bot, msg.channel, "Sadly I cannot help you at this time.");
+				return;
 			}
 
-			if (msg.channel.id != channel.id) {
-				output += "Move to " + channel.mention() + " and wait for your rescue.";
+			var output = "";
+
+			if (serverRole) {
+				var ratsignalEmergencyChannel = botFunctions.getConfigValue(msg.server, "RATSIGNAL_EMERGENCY_CHANNEL");
+				var serverChannel;
+
+				if (ratsignalEmergencyChannel) {
+					serverChannel = botFunctions.getChannel(msg.server, ratsignalEmergencyChannel);
+				}
+
+				var signalChannel = msg.channel;
+
+				if (serverChannel) {
+					signalChannel = serverChannel;
+				}
+
+				output = serverRole.mention() + " RAT SIGNAL\n";
+				output += msg.author.mention() + " has run out of fuel and is in need of assistance!";
+
+				//
+				/*var edsm = botFunctions.getModule(msg.server, "edsm");
+
+				if (edsm) {
+					var edsmApi = edsm.getApiObject();
+
+					if (edsmApi) {
+						console.log("Ratsignal EDSM support enabled.");
+						var edsmUser = edsm.getEdsmUser(msg.author);
+
+						if (edsmUser) {
+							//edsm.getCommanderCoordinates(edsmUser, bot, message);
+						}
+					}
+				}*/
+				//
+
+				botFunctions.sendMessage(bot, signalChannel, output);
+
+				output = msg.author.mention() + ", a rat signal has been sent.\n";
+
+				if (ratsignalFuelProcedureLink) {
+					output += "Stay calm and refer to the Emergency Fuel Procedures detailled here: " + ratsignalFuelProcedureLink + "\n";
+				}
+
+				if (msg.channel.id != signalChannel.id) {
+					output += "Move to " + signalChannel.mention() + " and wait for your rescue.";
+				}
+			} else {
+				output = "Please refer to the Emergency Fuel Procedures detailled here: " + ratsignalFuelProcedureLink;
 			}
 
 			botFunctions.sendMessage(bot, msg.channel, output);
