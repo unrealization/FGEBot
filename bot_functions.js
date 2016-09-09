@@ -142,6 +142,10 @@ function compileArgs(args) {
 
 function sendMessage(bot, channel, message) {
 	function messageHandler(error, message) {
+		if (error) {
+			console.log("Error: " + error);
+		}
+
 		if (parts.length == 0) {
 			return;
 		}
@@ -150,13 +154,14 @@ function sendMessage(bot, channel, message) {
 		bot.sendMessage(channel, output, {}, messageHandler);
 	}
 
+	var parts = [];
+
 	if (message.length < 1500) {
-		bot.sendMessage(channel, message);
+		bot.sendMessage(channel, message, {}, messageHandler);
 		return;
 	}
 
 	var lines = message.split("\n");
-	var parts = [];
 	var output = "";
 
 	for (var index=0; index<lines.length; index++) {
