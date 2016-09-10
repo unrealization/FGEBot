@@ -3,7 +3,7 @@ var config = require('./config.js');
 
 var botFunctions = require("./bot_functions.js");
 
-const VERSION = "Jeeves 1.6.1";
+const VERSION = "Jeeves 1.6.2";
 
 botFunctions.loadModules();
 

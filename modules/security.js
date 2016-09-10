@@ -1,6 +1,6 @@
 var botFunctions = require("../bot_functions.js");
 
-const VERSION = "0.3 Beta";
+const VERSION = "0.6 Beta";
 
 var defaultModuleConfig = {
 	"SECURITY_CONTACT_ROLE": "",
@@ -63,9 +63,9 @@ var commands = {
 				output += "Stay calm and refer to the Emergency Procedures detailled here: " + securityEmergencyProcedureLink + "\n";
 			}
 
-			if (msg.channel.id != channel.id) {
+			/*if (msg.channel.id != channel.id) {
 				output += "Move to " + channel.mention() + " and wait for your rescue.";
-			}
+			}*/
 
 			botFunctions.sendMessage(bot, msg.channel, output);
 		}
@@ -127,42 +127,42 @@ var commands = {
 			"administrator"
 		]
 	},
-	/*"getRatsignalEmergencyChannel": {
-		help: "Get the current ratsignal emergency channel.",
+	"getSecurityEmergencyChannel": {
+		help: "Get the current security signal emergency channel.",
 		process: function(args, bot, msg) {
-			var ratsignalEmergencyChannel = botFunctions.getConfigValue(msg.server, "RATSIGNAL_EMERGENCY_CHANNEL");
+			var securityEmergencyChannel = botFunctions.getConfigValue(msg.server, "SECURITY_EMERGENCY_CHANNEL");
 
-			if (!ratsignalEmergencyChannel) {
-				botFunctions.sendMessage(bot, msg.channel, "No ratsignal emergency channel has been set.");
+			if (!securityEmergencyChannel) {
+				botFunctions.sendMessage(bot, msg.channel, "No security signal emergency channel has been set.");
 				return;
 			}
 
-			var channel = botFunctions.getChannel(msg.server, ratsignalEmergencyChannel);
+			var serverChannel = botFunctions.getChannel(msg.server, securityEmergencyChannel);
 
-			if (!channel) {
+			if (!serverChannel) {
 				botFunctions.sendMessage(bot, msg.channel, "A channel is set, but it does not exist on this server.");
 				return;
 			}
 
-			botFunctions.sendMessage(bot, msg.channel, "The ratsignal emergency channel is: " + channel.name);
+			botFunctions.sendMessage(bot, msg.channel, "The security signal emergency channel is: " + serverChannel.name);
 		},
 		permissions: [
 			"administrator"
 		]
-	},*/
-	/*"setRatsignalEmergencyChannel": {
+	},
+	"setSecurityEmergencyChannel": {
 		usage: "[channel]",
-		help: "Sets a channel, or none, as the channel commanders will be directed towards in case of a ratsignal.",
+		help: "Sets a channel, or none, as the channel where the security signal will be raised.",
 		process: function(args, bot, msg) {
 			var channel = botFunctions.compileArgs(args);
 
 			if (!channel) {
-				if (!botFunctions.setConfigValue(msg.server, "RATSIGNAL_EMERGENCY_CHANNEL", "")) {
+				if (!botFunctions.setConfigValue(msg.server, "SECURITY_EMERGENCY_CHANNEL", "")) {
 					botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
 					return;
 				}
 
-				botFunctions.sendMessage(bot, msg.channel, "The ratsignal emergency channel has been cleared.");
+				botFunctions.sendMessage(bot, msg.channel, "The security signal emergency channel has been cleared.");
 				return;
 			}
 
@@ -173,17 +173,17 @@ var commands = {
 				return;
 			}
 
-			if (!botFunctions.setConfigValue(msg.server, "RATSIGNAL_EMERGENCY_CHANNEL", serverChannel.id)) {
+			if (!botFunctions.setConfigValue(msg.server, "SECURITY_EMERGENCY_CHANNEL", serverChannel.id)) {
 				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
 				return;
 			}
 
-			botFunctions.sendMessage(bot, msg.channel, "The ratsignal emergency channel has been set to " + serverChannel.name);
+			botFunctions.sendMessage(bot, msg.channel, "The security signal emergency channel has been set to " + serverChannel.name);
 		},
 		permissions: [
 			"administrator"
 		]
-	},*/
+	},
 	/*"getRatsignalFuelProcedureLink": {
 		help: "Get the current ratsignal fuel procedure link.",
 		process: function(args, bot, msg) {
