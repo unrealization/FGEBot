@@ -1,6 +1,6 @@
 var botFunctions = require("../bot_functions.js");
 
-const VERSION = "1.0";
+const VERSION = "1.1";
 
 var defaultModuleConfig = {
 	"WELCOME_CHANNEL": "",
@@ -25,6 +25,29 @@ function newMemberHandler(bot, server, user) {
 }
 
 var commands = {
+	"getWelcomeChannel": {
+		help: "Shows the currently set channel for welcome messages for new users.",
+		process: function(args, bot, msg) {
+			var welcomeChannel = botFunctions.getConfigValue(msg.server, "WELCOME_CHANNEL");
+
+			if (!welcomeChannel) {
+				botFunctions.sendMessage(bot, msg.channel, "No welcome channel has been set.");
+				return;
+			}
+
+			var serverChannel = botFunctions.getChannel(msg.serverr, welcomeChannel);
+
+			if (!serverChannel) {
+				botFunctions.sendMessage(bot, msg.channel, "A channel is set, but it does not exist on this server.");
+				return;
+			}
+
+			botFunctions.sendMessage(bot, msg.channel, "The welcome channel is: " + serverChannel.name);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
 	"setWelcomeChannel": {
 		usage: "[channel]",
 		help: "Set a channel, or none, in which the bot will post a welcome message for new users on this Discord.",

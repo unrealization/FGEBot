@@ -214,6 +214,203 @@ function presenceHandler(bot, server, oldUser, newUser) {
 }
 
 var commands = {
+	"getStreams": {
+		usage: "[user]",
+		help: "List your, or the given user's registered stream URLs.",
+		process: function(args, bot, msg) {
+			var user = botFunctions.compileArgs(args);
+			var serverUser = msg.author;
+
+			if (user) {
+				serverUser = botFunctions.getUserByName(msg.server, user);
+
+				if (!serverUser) {
+					botFunctions.sendMessage(bot, msg.channel, "Cannot find the user " + user);
+					return;
+				}
+			}
+
+			if (!streamLists[serverUser.id]) {
+				botFunctions.sendMessage(bot, msg.channel, serverUser.name + " has not registered any stream URLs.");
+				return;
+			}
+
+			var userStreams = streamLists[serverUser.id];
+
+			if (userStreams.length == 0) {
+				botFunctions.sendMessage(bot, msg.channel, serverUser.name + " has not registered any stream URLs.");
+				return;
+			}
+
+			var output = serverUser.name + " has registered the following stream URLs:\n";
+
+			for (var x=0; x<userStreams.length; x++) {
+				if (serverUser.id == msg.author.id) {
+					output += "\t" + (x+1);
+				}
+
+				output += "\t<" + userStreams[x].url + ">";
+
+				if (userStreams[x].live == 1) {
+					output += "\tLive Now!";
+				}
+
+				output += "\n";
+			}
+
+			botFunctions.sendMessage(bot, msg.channel, output);
+		}
+	},
+	"addStream": {
+		usage: "<url>",
+		help: "Add a stream URL to your stream list.",
+		process: function(args, bot, msg) {
+			var streamUrl = botFunctions.compileArgs(args);
+
+			if (!streamUrl) {
+				botFunctions.sendMessage(bot, msg.channel, "You need to specify a URL in order to register it.");
+				return;
+			}
+
+			if (streamUrl.startsWith("<")) {
+				streamUrl = streamUrl.substr(1);
+			}
+
+			if (streamUrl.endsWith(">")) {
+				streamUrl = streamUrl.substr(0, streamUrl.length-1);
+			}
+
+			if (!streamUrl) {
+				botFunctions.sendMessage(bot, msg.channel, "You need to specify a URL in order to register it.");
+				return;
+			}
+
+			if (!streamLists[msg.author.id]) {
+				streamLists[msg.author.id] = [];
+			}
+
+			var stream = {
+				url: streamUrl,
+				live: 0,
+			};
+
+			streamLists[msg.author.id].push(stream);
+			updateStreamLists();
+			botFunctions.sendMessage(bot, msg.channel, "Stream URL added to your stream list.");
+		}
+	},
+	"removeStream": {
+		usage: "<streamId>",
+		help: "Remove the given stream URL from your stream list.",
+		process: function(args, bot, msg) {
+			var streamId = Number(botFunctions.compileArgs(args));
+
+			if (!streamId) {
+				botFunctions.sendMessage(bot, msg.channel, "You need to supply a valid stream id.");
+				return;
+			}
+
+			if (!streamLists[msg.author.id]) {
+				botFunctions.sendMessage(bot, msg.channel, "You have not registered any streams.");
+				return;
+			}
+
+			if (!streamLists[msg.author.id][(streamId-1)]) {
+				botFunctions.sendMessage(bot, msg.channel, "Cannot find stream id " + streamId);
+				return;
+			}
+
+			streamLists[msg.author.id].splice(streamId-1, 1);
+			updateStreamLists();
+			botFunctions.sendMessage(bot, msg.channel, "The stream has been removed.");
+		}
+	},
+	"startStream": {
+		usage: "<streamId>",
+		help: "Start the given stream.",
+		process: function(args, bot, msg) {
+			var streamId = Number(botFunctions.compileArgs(args));
+
+			if (!streamId) {
+				botFunctions.sendMessage(bot, msg.channel, "You need to supply a valid stream id.");
+				return;
+			}
+
+			if (!streamLists[msg.author.id]) {
+				botFunctions.sendMessage(bot, msg.channel, "You have not registered any streams.");
+				return;
+			}
+
+			if (!streamLists[msg.author.id][(streamId-1)]) {
+				botFunctions.sendMessage(bot, msg.channel, "Cannot find stream id " + streamId);
+				return;
+			}
+
+			if (streamLists[msg.author.id][(streamId-1)].live == 1) {
+				botFunctions.sendMessage(bot, msg.channel, "Your stream is running already.");
+				return;
+			}
+
+			streamSetLive(msg.author, streamId-1, 1);
+			botFunctions.sendMessage(bot, msg.channel, "Your stream has been started.");
+			setLiveRole(bot, msg.server, msg.author);
+
+			var streamShoutoutChannel = getShoutoutChannel(bot, msg.server, msg.author);
+
+			if (!streamShoutoutChannel) {
+				return;
+			}
+
+			var output = msg.author.name + " has started streaming at <" + streamLists[msg.author.id][(streamId-1)].url + ">.";
+			botFunctions.sendMessage(bot, streamShoutoutChannel, output);
+		}
+	},
+	"stopStream": {
+		usage: "<streamId>",
+		help: "Stop the given stream.",
+		process: function(args, bot, msg) {
+			function roleHandler(error) {
+				if (error) {
+					console.log("Cannot auto-assign role to " + msg.author.name + ": " + error);
+				}
+			}
+
+			var streamId = Number(botFunctions.compileArgs(args));
+
+			if (!streamId) {
+				botFunctions.sendMessage(bot, msg.channel, "You need to supply a valid stream id.");
+				return;
+			}
+
+			if (!streamLists[msg.author.id]) {
+				botFunctions.sendMessage(bot, msg.channel, "You have not registered any streams.");
+				return;
+			}
+
+			if (!streamLists[msg.author.id][(streamId-1)]) {
+				botFunctions.sendMessage(bot, msg.channel, "Cannot find stream id " + streamId);
+				return;
+			}
+
+			if (streamLists[msg.author.id][(streamId-1)].live == 0) {
+				botFunctions.sendMessage(bot, msg.channel, "Your stream is currently not running.");
+				return;
+			}
+
+			streamSetLive(msg.author, streamId-1, 0);
+			botFunctions.sendMessage(bot, msg.channel, "Your stream has been stopped.");
+			unsetLiveRole(bot, msg.server, msg.author);
+
+			var streamShoutoutChannel = getShoutoutChannel(bot, msg.server, msg.author);
+
+			if (!streamShoutoutChannel) {
+				return;
+			}
+
+			var output = msg.author.name + " has stopped streaming.";
+			botFunctions.sendMessage(bot, streamShoutoutChannel, output);
+		}
+	},
 	"getStreamShoutoutChannel": {
 		help: "Get the current stream shoutout channel.",
 		process: function(args, bot, msg) {
@@ -427,203 +624,6 @@ var commands = {
 		permissions: [
 			"administrator"
 		]
-	},
-	"getStreams": {
-		usage: "[user]",
-		help: "List your, or the given user's registered stream URLs.",
-		process: function(args, bot, msg) {
-			var user = botFunctions.compileArgs(args);
-			var serverUser = msg.author;
-
-			if (user) {
-				serverUser = botFunctions.getUserByName(msg.server, user);
-
-				if (!serverUser) {
-					botFunctions.sendMessage(bot, msg.channel, "Cannot find the user " + user);
-					return;
-				}
-			}
-
-			if (!streamLists[serverUser.id]) {
-				botFunctions.sendMessage(bot, msg.channel, serverUser.name + " has not registered any stream URLs.");
-				return;
-			}
-
-			var userStreams = streamLists[serverUser.id];
-
-			if (userStreams.length == 0) {
-				botFunctions.sendMessage(bot, msg.channel, serverUser.name + " has not registered any stream URLs.");
-				return;
-			}
-
-			var output = serverUser.name + " has registered the following stream URLs:\n";
-
-			for (var x=0; x<userStreams.length; x++) {
-				if (serverUser.id == msg.author.id) {
-					output += "\t" + (x+1);
-				}
-
-				output += "\t<" + userStreams[x].url + ">";
-
-				if (userStreams[x].live == 1) {
-					output += "\tLive Now!";
-				}
-
-				output += "\n";
-			}
-
-			botFunctions.sendMessage(bot, msg.channel, output);
-		}
-	},
-	"addStream": {
-		usage: "<url>",
-		help: "Add a stream URL to your stream list.",
-		process: function(args, bot, msg) {
-			var streamUrl = botFunctions.compileArgs(args);
-
-			if (!streamUrl) {
-				botFunctions.sendMessage(bot, msg.channel, "You need to specify a URL in order to register it.");
-				return;
-			}
-
-			if (streamUrl.startsWith("<")) {
-				streamUrl = streamUrl.substr(1);
-			}
-
-			if (streamUrl.endsWith(">")) {
-				streamUrl = streamUrl.substr(0, streamUrl.length-1);
-			}
-
-			if (!streamUrl) {
-				botFunctions.sendMessage(bot, msg.channel, "You need to specify a URL in order to register it.");
-				return;
-			}
-
-			if (!streamLists[msg.author.id]) {
-				streamLists[msg.author.id] = [];
-			}
-
-			var stream = {
-				url: streamUrl,
-				live: 0,
-			};
-
-			streamLists[msg.author.id].push(stream);
-			updateStreamLists();
-			botFunctions.sendMessage(bot, msg.channel, "Stream URL added to your stream list.");
-		}
-	},
-	"removeStream": {
-		usage: "<streamId>",
-		help: "Remove the given stream URL from your stream list.",
-		process: function(args, bot, msg) {
-			var streamId = Number(botFunctions.compileArgs(args));
-
-			if (!streamId) {
-				botFunctions.sendMessage(bot, msg.channel, "You need to supply a valid stream id.");
-				return;
-			}
-
-			if (!streamLists[msg.author.id]) {
-				botFunctions.sendMessage(bot, msg.channel, "You have not registered any streams.");
-				return;
-			}
-
-			if (!streamLists[msg.author.id][(streamId-1)]) {
-				botFunctions.sendMessage(bot, msg.channel, "Cannot find stream id " + streamId);
-				return;
-			}
-
-			streamLists[msg.author.id].splice(streamId-1, 1);
-			updateStreamLists();
-			botFunctions.sendMessage(bot, msg.channel, "The stream has been removed.");
-		}
-	},
-	"startStream": {
-		usage: "<streamId>",
-		help: "Start the given stream.",
-		process: function(args, bot, msg) {
-			var streamId = Number(botFunctions.compileArgs(args));
-
-			if (!streamId) {
-				botFunctions.sendMessage(bot, msg.channel, "You need to supply a valid stream id.");
-				return;
-			}
-
-			if (!streamLists[msg.author.id]) {
-				botFunctions.sendMessage(bot, msg.channel, "You have not registered any streams.");
-				return;
-			}
-
-			if (!streamLists[msg.author.id][(streamId-1)]) {
-				botFunctions.sendMessage(bot, msg.channel, "Cannot find stream id " + streamId);
-				return;
-			}
-
-			if (streamLists[msg.author.id][(streamId-1)].live == 1) {
-				botFunctions.sendMessage(bot, msg.channel, "Your stream is running already.");
-				return;
-			}
-
-			streamSetLive(msg.author, streamId-1, 1);
-			botFunctions.sendMessage(bot, msg.channel, "Your stream has been started.");
-			setLiveRole(bot, msg.server, msg.author);
-
-			var streamShoutoutChannel = getShoutoutChannel(bot, msg.server, msg.author);
-
-			if (!streamShoutoutChannel) {
-				return;
-			}
-
-			var output = msg.author.name + " has started streaming at <" + streamLists[msg.author.id][(streamId-1)].url + ">.";
-			botFunctions.sendMessage(bot, streamShoutoutChannel, output);
-		}
-	},
-	"stopStream": {
-		usage: "<streamId>",
-		help: "Stop the given stream.",
-		process: function(args, bot, msg) {
-			function roleHandler(error) {
-				if (error) {
-					console.log("Cannot auto-assign role to " + msg.author.name + ": " + error);
-				}
-			}
-
-			var streamId = Number(botFunctions.compileArgs(args));
-
-			if (!streamId) {
-				botFunctions.sendMessage(bot, msg.channel, "You need to supply a valid stream id.");
-				return;
-			}
-
-			if (!streamLists[msg.author.id]) {
-				botFunctions.sendMessage(bot, msg.channel, "You have not registered any streams.");
-				return;
-			}
-
-			if (!streamLists[msg.author.id][(streamId-1)]) {
-				botFunctions.sendMessage(bot, msg.channel, "Cannot find stream id " + streamId);
-				return;
-			}
-
-			if (streamLists[msg.author.id][(streamId-1)].live == 0) {
-				botFunctions.sendMessage(bot, msg.channel, "Your stream is currently not running.");
-				return;
-			}
-
-			streamSetLive(msg.author, streamId-1, 0);
-			botFunctions.sendMessage(bot, msg.channel, "Your stream has been stopped.");
-			unsetLiveRole(bot, msg.server, msg.author);
-
-			var streamShoutoutChannel = getShoutoutChannel(bot, msg.server, msg.author);
-
-			if (!streamShoutoutChannel) {
-				return;
-			}
-
-			var output = msg.author.name + " has stopped streaming.";
-			botFunctions.sendMessage(bot, streamShoutoutChannel, output);
-		}
 	},
 };
 
