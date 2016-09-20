@@ -1,12 +1,13 @@
 var botFunctions = require("../bot_functions.js");
 
-const VERSION = "1.0";
+const VERSION = "1.1";
 
 var defaultModuleConfig = {
 	"STREAM_SHOUTOUT_CHANNEL": "",
 	"STREAMER_ROLE": "",
 	"SHOUTOUT_NEEDS_ROLE": 1,
 	"LIVE_ROLE": "",
+	"DISCORD_STREAM_URL": "",
 };
 
 var streamLists = botFunctions.readJSON("./streamLists.json");
@@ -190,8 +191,16 @@ function presenceHandler(bot, server, oldUser, newUser) {
 		return false;
 	}
 
-	//var output = user.mention() + " has ";
-	var output = user.name + " has ";
+	var output;
+	var discordStreamUrl = botFunctions.getConfigValue(server, "DISCORD_STREAM_URL");
+
+	if (discordStreamUrl && user.game.url && discordStreamUrl == user.game.url) {
+		output = server.name;
+	} else {
+		output = user.name;
+	}
+
+	output += " has ";
 
 	if (live == 1) {
 		output += "started streaming";
@@ -620,6 +629,57 @@ var commands = {
 			}
 
 			botFunctions.sendMessage(bot, msg.channel, "The live role has been set to: " + serverRole.name);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"getDiscordStreamUrl": {
+		help: "Check the stream URL set for this Discord.",
+		process: function(args, bot, msg) {
+			var discordStreamUrl = botFunctions.getConfigValue(msg.server, "DISCORD_STREAM_URL");
+
+			if (!discordStreamUrl) {
+				botFunctions.sendMessage(bot, msg.channel, "No stream URL has been set for this Discord.");
+				return;
+			}
+
+			botFunctions.sendMessage(bot, msg.channel,"The stream URL for this Discord is: <" + discordStreamUrl + ">");
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"setDiscordStreamUrl": {
+		usage: "[url]",
+		help: "Set a URL, or none, that will be announced as being broadcast by the Discord, not a specific user.",
+		process: function(args, bot, msg) {
+			var streamUrl = botFunctions.compileArgs(args);
+			
+			if (!streamUrl) {
+				if (!botFunctions.setConfigValue(msg.server, "DISCORD_STREAM_URL", "")) {
+					botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+					return;
+				}
+
+				botFunctions.sendMessage(bot, msg.channel, "The Discord stream URL has been cleared.");
+				return;
+			}
+
+			if (streamUrl.startsWith("<")) {
+				streamUrl = streamUrl.substr(1);
+			}
+
+			if (streamUrl.endsWith(">")) {
+				streamUrl = streamUrl.substr(0, streamUrl.length-1);
+			}
+
+			if (!botFunctions.setConfigValue(msg.server, "DISCORD_STREAM_URL", streamUrl)) {
+				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+				return;
+			}
+
+			botFunctions.sendMessage(bot, msg.channel, "The Discord stream URL has been set to: <" + streamUrl + ">");
 		},
 		permissions: [
 			"administrator"
