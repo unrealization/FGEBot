@@ -1,6 +1,6 @@
 var botFunctions = require("../bot_functions.js");
 
-const VERSION = "1.0";
+const VERSION = "1.0.1";
 
 var defaultModuleConfig = {
 	"AUTO_ROLE": "",
@@ -118,8 +118,7 @@ var commands = {
 				return;
 			}
 
-			var commandPrefix = botFunctions.getConfigValue(msg.server, "COMMAND_PREFIX");
-			var output = "The following roles can be managed by the bot using the " + commandPrefix + "join and " + commandPrefix + "leave commands:\n";
+			var output = "The following roles can be managed by the bot using the join and leave commands:\n";
 			output += "\t" + roleNames.join("\n\t");
 
 			botFunctions.sendMessage(bot, msg.channel, output);
