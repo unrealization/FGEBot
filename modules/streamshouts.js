@@ -1,6 +1,6 @@
 var botFunctions = require("../bot_functions.js");
 
-const VERSION = "1.1";
+const VERSION = "1.2";
 
 var defaultModuleConfig = {
 	"STREAM_SHOUTOUT_CHANNEL": "",
@@ -116,6 +116,10 @@ function getShoutoutChannel(bot, server, user) {
 		return null;
 	}
 
+	if (!user) {
+		return serverChannel;
+	}
+
 	var shoutoutNeedsRole = botFunctions.getConfigValue(server, "SHOUTOUT_NEEDS_ROLE");
 
 	if (shoutoutNeedsRole == 1) {
@@ -185,19 +189,27 @@ function presenceHandler(bot, server, oldUser, newUser) {
 		}
 	}
 
-	var streamShoutoutChannel = getShoutoutChannel(bot, server, user);
-
-	if (!streamShoutoutChannel) {
-		return false;
-	}
-
 	var output;
 	var discordStreamUrl = botFunctions.getConfigValue(server, "DISCORD_STREAM_URL");
+	var discordStream = 0;
 
 	if (discordStreamUrl && user.game.url && discordStreamUrl == user.game.url) {
 		output = server.name;
+		discordStream = 1;
 	} else {
 		output = user.name;
+	}
+
+	var streamShoutoutChannel;
+
+	if (discordStream == 1) {
+		streamShoutoutChannel = getShoutoutChannel(bot, server);
+	} else {
+		streamShoutoutChannel = getShoutoutChannel(bot, server, user);
+	}
+
+	if (!streamShoutoutChannel) {
+		return false;
 	}
 
 	output += " has ";
