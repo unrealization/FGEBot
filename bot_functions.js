@@ -59,6 +59,10 @@ function moduleIsEnabled(server, module) {
 		return false;
 	}
 
+	if (loadedModules[module].DISCORDID && loadedModules[module].DISCORDID != server.id) {
+		return false;
+	}
+
 	var disabledModules = getConfigValue(server, "DISABLED_MODULES");
 
 	if (disabledModules.indexOf(module) > -1) {
