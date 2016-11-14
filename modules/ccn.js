@@ -2,7 +2,7 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.9.1";
+const VERSION = "0.9.4";
 const DISCORDID = 209372315673165825;
 
 var defaultModuleConfig = {
@@ -48,15 +48,6 @@ function proximityCheck(args, bot, msg) {
 		var output = "";
 
 		for (var index=0; index<serverMembers.length; index++) {
-			var roleIndex = proximityRoleMembers.indexOf(serverMembers[index]);
-			if (roleIndex > -1) {
-				console.log("Has proximity role.");
-			} else {
-				console.log("Does not have proximity role.");
-			}
-
-			//var hasProximityRole = bot.memberHasRole(serverMembers[index], proximityRole);
-
 			var edsm = botFunctions.getModule(msg.server, "edsm");
 			var edsmUser;
 
@@ -72,16 +63,16 @@ function proximityCheck(args, bot, msg) {
 				dataIndex = data.commanders.indexOf(serverMembers[index].name);
 			}
 
-			//if (dataIndex > -1 && hasProximityRole == null) {
+			var roleIndex = proximityRoleMembers.indexOf(serverMembers[index]);
+
 			if (dataIndex > -1 && roleIndex == -1) {
 				output += serverMembers[index].name + " has arrived in Colonia." + "\n";
-				//bot.addMemberToRole(serverMembers[index], proximityRole, roleHandler);
+				bot.addMemberToRole(serverMembers[index], proximityRole, roleHandler);
 			}
 
-			//if (dataIndex == -1 && hasProximityRole == proximityRole) {
 			if (dataIndex == -1 && roleIndex > -1) {
 				output += serverMembers[index].name + " is no longer in Colonia." + "\n";
-				//bot.removeMemberFromRole(serverMembers[index], proximityRole, roleHandler);
+				bot.removeMemberFromRole(serverMembers[index], proximityRole, roleHandler);
 			}
 		}
 
