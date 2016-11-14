@@ -59,9 +59,10 @@ function proximityCheck(args, bot, msg) {
 			var dataIndex;
 
 			if (edsmUser) {
-				dataIndex = data.commanders.indexOf(edsmUser.toLowerCase());
+				console.log("Found EDSM mapping.");
+				dataIndex = data.commanders.indexOf(edsmUser);
 			} else {
-				dataIndex = data.commanders.indexOf(serverMembers[index].name.toLowerCase());
+				dataIndex = data.commanders.indexOf(serverMembers[index].name);
 			}
 
 			if (dataIndex > -1 && hasProximityRole == null) {
