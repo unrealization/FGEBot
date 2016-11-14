@@ -2,7 +2,7 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.9";
+const VERSION = "0.9.1";
 const DISCORDID = 209372315673165825;
 
 var defaultModuleConfig = {
@@ -65,13 +65,13 @@ function proximityCheck(args, bot, msg) {
 			}
 
 			if (dataIndex > -1 && hasProximityRole == null) {
-				//	bot.addMemberToRole(user, serverRole, roleHandler);
 				output += serverMembers[index].name + " has arrived in Colonia." + "\n";
+				bot.addMemberToRole(serverMembers[index], proximityRole, roleHandler);
 			}
 
 			if (dataIndex == -1 && hasProximityRole == proximityRole) {
-				//	bot.removeMemberFromRole(user, serverRole, roleHandler);
 				output += serverMembers[index].name + " is no longer in Colonia." + "\n";
+				bot.removeMemberFromRole(serverMembers[index], proximityRole, roleHandler);
 			}
 		}
 
