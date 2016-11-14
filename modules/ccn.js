@@ -2,7 +2,7 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.6";
+const VERSION = "0.6.1";
 //const DISCORDID = 212228086849077248;
 const DISCORDID = 209372315673165825;
 
@@ -53,7 +53,7 @@ function proximityCheck(args, bot, msg) {
 			var edsmUser;
 
 			if (edsm) {
-				edsmUser = edsm.getEdsmUser(serverMembers[index].id);
+				edsmUser = edsm.getEdsmUser(serverMembers[index]);
 			}
 
 			var dataIndex;
