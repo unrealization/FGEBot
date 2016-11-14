@@ -2,9 +2,9 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.2";
-const DISCORDID = 212228086849077248;
-//const DISCORDID = 209372315673165825;
+const VERSION = "0.3";
+//const DISCORDID = 212228086849077248;
+const DISCORDID = 209372315673165825;
 
 var defaultModuleConfig = {
 	"CCN_PROXIMITY_ROLE": "",
@@ -112,6 +112,7 @@ var commands = {
 
 //
 exports.VERSION = VERSION;
+exports.DISCORDID = DISCORDID;
 exports.defaultModuleConfig = defaultModuleConfig;
 exports.getApiObject = getApiObject;
 exports.preprocess = setUseBetaServer;
