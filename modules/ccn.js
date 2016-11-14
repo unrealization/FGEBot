@@ -2,7 +2,7 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.3";
+const VERSION = "0.6";
 //const DISCORDID = 212228086849077248;
 const DISCORDID = 209372315673165825;
 
@@ -30,9 +30,6 @@ function proximityCheck(args, bot, msg) {
 	function roleHandler(error) {
 		if (error) {
 			console.log("Error: " + error);
-			botFunctions.sendMessage(bot, msg.channel, "I may not have permission to assign this role.");
-		} else {
-			botFunctions.sendMessage(bot, msg.channel, "Done.");
 		}
 	}
 
@@ -52,9 +49,20 @@ function proximityCheck(args, bot, msg) {
 		for (var index=0; index<serverMembers.length; index++) {
 			var hasProximityRole = bot.memberHasRole(serverMembers[index], proximityRole);
 
-			//check for EDSM name
-			//
-			var dataIndex = data.commanders.indexOf(serverMembers[index].name.toLowerCase());
+			var edsm = botFunctions.getModule(msg.server, "edsm");
+			var edsmUser;
+
+			if (edsm) {
+				edsmUser = edsm.getEdsmUser(serverMembers[index].id);
+			}
+
+			var dataIndex;
+
+			if (edsmUser) {
+				dataIndex = data.commanders.indexOf(edsmUser.toLowerCase());
+			} else {
+				dataIndex = data.commanders.indexOf(serverMembers[index].name.toLowerCase());
+			}
 
 			if (dataIndex > -1 && hasProximityRole == null) {
 				//	bot.addMemberToRole(user, serverRole, roleHandler);
