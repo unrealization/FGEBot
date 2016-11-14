@@ -54,6 +54,7 @@ function proximityCheck(args, bot, msg) {
 			} else {
 				console.log("Does not have proximity role.");
 			}
+
 			//var hasProximityRole = bot.memberHasRole(serverMembers[index], proximityRole);
 
 			var edsm = botFunctions.getModule(msg.server, "edsm");
@@ -71,12 +72,14 @@ function proximityCheck(args, bot, msg) {
 				dataIndex = data.commanders.indexOf(serverMembers[index].name);
 			}
 
-			if (dataIndex > -1 && hasProximityRole == null) {
+			//if (dataIndex > -1 && hasProximityRole == null) {
+			if (dataIndex > -1 && roleIndex == -1) {
 				output += serverMembers[index].name + " has arrived in Colonia." + "\n";
 				//bot.addMemberToRole(serverMembers[index], proximityRole, roleHandler);
 			}
 
-			if (dataIndex == -1 && hasProximityRole == proximityRole) {
+			//if (dataIndex == -1 && hasProximityRole == proximityRole) {
+			if (dataIndex == -1 && roleIndex > -1) {
 				output += serverMembers[index].name + " is no longer in Colonia." + "\n";
 				//bot.removeMemberFromRole(serverMembers[index], proximityRole, roleHandler);
 			}
