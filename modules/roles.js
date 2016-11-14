@@ -1,6 +1,6 @@
 var botFunctions = require("../bot_functions.js");
 
-const VERSION = "1.0.1";
+const VERSION = "1.0.2";
 
 var defaultModuleConfig = {
 	"AUTO_ROLE": "",
@@ -131,7 +131,7 @@ var commands = {
 			function roleHandler(error) {
 				if (error) {
 					console.log("Error: " + error);
-					botFunctions.sendMessage(bot, msg.channel, "I may have not permission to assign this role.");
+					botFunctions.sendMessage(bot, msg.channel, "I may not have permission to assign this role.");
 				} else {
 					botFunctions.sendMessage(bot, msg.channel, "Done.");
 				}
@@ -174,7 +174,7 @@ var commands = {
 			function roleHandler(error) {
 				if (error) {
 					console.log("Error: " + error);
-					botFunctions.sendMessage(bot, msg.channel, "I may have not permission to assign this role.");
+					botFunctions.sendMessage(bot, msg.channel, "I may not have permission to assign this role.");
 				} else {
 					botFunctions.sendMessage(bot, msg.channel, "Done.");
 				}

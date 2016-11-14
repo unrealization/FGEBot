@@ -3,7 +3,7 @@ var config = require('./config.js');
 
 var botFunctions = require("./bot_functions.js");
 
-const VERSION = "Jeeves 1.7.0";
+const VERSION = "Jeeves 1.8.0";
 
 botFunctions.loadModules();
 
@@ -278,6 +278,30 @@ var commands = {
 			}
 
 			bot.getChannelLogs(serverChannel, 100, {}, logHandler);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"getRoleId": {
+		usage: "<role>",
+		help: "Get the ID of the given role.",
+		process: function(args, bot, msg) {
+			var role = botFunctions.compileArgs(args);
+
+			if (!role) {
+				botFunctions.sendMessage(bot, msg.channel, "You need to specify a role.");
+				return;
+			}
+
+			var serverRole = botFunctions.getRoleByName(msg.server, role);
+
+			if (!serverRole) {
+				botFunctions.sendMessage(bot, msg.channel, "Cannot find the role " + role);
+				return;
+			}
+
+			botFunctions.sendMessage(bot, msg.channel, "The ID of " + serverRole.name + " is: " + serverRole.id);
 		},
 		permissions: [
 			"administrator"
