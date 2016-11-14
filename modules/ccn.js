@@ -2,7 +2,7 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.8";
+const VERSION = "0.9";
 const DISCORDID = 209372315673165825;
 
 var defaultModuleConfig = {
@@ -66,12 +66,12 @@ function proximityCheck(args, bot, msg) {
 
 			if (dataIndex > -1 && hasProximityRole == null) {
 				//	bot.addMemberToRole(user, serverRole, roleHandler);
-				//botFunctions.sendMessage(bot, msg.channel, serverMembers[index].name + " has arrived in Colonia.");
+				output += serverMembers[index].name + " has arrived in Colonia." + "\n";
 			}
 
 			if (dataIndex == -1 && hasProximityRole == proximityRole) {
 				//	bot.removeMemberFromRole(user, serverRole, roleHandler);
-				//botFunctions.sendMessage(bot, msg.channel, serverMembers[index].name + " is no longer in Colonia.");
+				output += serverMembers[index].name + " is no longer in Colonia." + "\n";
 			}
 		}
 
@@ -79,6 +79,8 @@ function proximityCheck(args, bot, msg) {
 			botFunctions.sendMessage(bot, msg.channel, "No changes to process.");
 			return;
 		}
+
+		botFunctions.sendMessage(bot, msg.channel, output);
 	}
 
 	var proximityRoleId = botFunctions.getConfigValue(msg.server, "CCN_PROXIMITY_ROLE");
