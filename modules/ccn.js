@@ -28,7 +28,8 @@ function setUseBetaServer(args, bot, msg) {
 function proximityCheck(args, bot, msg) {
 	function roleHandler(error) {
 		if (error) {
-			console.log("Error: " + error);
+			//console.log("Error: " + error);
+			console.log(error);
 		}
 	}
 
