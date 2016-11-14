@@ -2,8 +2,7 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.6.1";
-//const DISCORDID = 212228086849077248;
+const VERSION = "0.8";
 const DISCORDID = 209372315673165825;
 
 var defaultModuleConfig = {
@@ -45,6 +44,7 @@ function proximityCheck(args, bot, msg) {
 		}
 
 		var serverMembers = msg.server.members;
+		var output = "";
 
 		for (var index=0; index<serverMembers.length; index++) {
 			var hasProximityRole = bot.memberHasRole(serverMembers[index], proximityRole);
@@ -59,7 +59,6 @@ function proximityCheck(args, bot, msg) {
 			var dataIndex;
 
 			if (edsmUser) {
-				console.log("Found EDSM mapping.");
 				dataIndex = data.commanders.indexOf(edsmUser);
 			} else {
 				dataIndex = data.commanders.indexOf(serverMembers[index].name);
@@ -67,13 +66,18 @@ function proximityCheck(args, bot, msg) {
 
 			if (dataIndex > -1 && hasProximityRole == null) {
 				//	bot.addMemberToRole(user, serverRole, roleHandler);
-				botFunctions.sendMessage(bot, msg.channel, serverMembers[index].name + " has arrived in Colonia.");
+				//botFunctions.sendMessage(bot, msg.channel, serverMembers[index].name + " has arrived in Colonia.");
 			}
 
 			if (dataIndex == -1 && hasProximityRole == proximityRole) {
 				//	bot.removeMemberFromRole(user, serverRole, roleHandler);
-				botFunctions.sendMessage(bot, msg.channel, serverMembers[index].name + " is no longer in Colonia.");
+				//botFunctions.sendMessage(bot, msg.channel, serverMembers[index].name + " is no longer in Colonia.");
 			}
+		}
+
+		if (!output) {
+			botFunctions.sendMessage(bot, msg.channel, "No changes to process.");
+			return;
 		}
 	}
 
