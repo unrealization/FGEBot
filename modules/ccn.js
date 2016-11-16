@@ -2,7 +2,7 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.9.6";
+const VERSION = "0.9.7";
 const DISCORDID = 209372315673165825;
 
 var defaultModuleConfig = {
@@ -81,14 +81,11 @@ function proximityCheck(args, bot, msg) {
 				edsmUser = edsm.getEdsmUser(serverMembers[index]);
 			}
 
-			var dataIndex;
-
-			if (edsmUser) {
-				dataIndex = data.commanders.indexOf(edsmUser);
-			} else {
-				dataIndex = data.commanders.indexOf(serverMembers[index].name);
+			if (!edsmUser) {
+				continue;
 			}
 
+			var dataIndex = data.commanders.indexOf(edsmUser);
 			var roleIndex = proximityRoleMembers.indexOf(serverMembers[index]);
 
 			if (dataIndex > -1 && roleIndex == -1) {
