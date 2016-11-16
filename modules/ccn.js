@@ -2,9 +2,9 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.9.4";
-//const DISCORDID = 209372315673165825;
-const DISCORDID = 212228086849077248;
+const VERSION = "0.9.4.2";
+const DISCORDID = 209372315673165825;
+//const DISCORDID = 212228086849077248;
 
 var defaultModuleConfig = {
 	"CCN_PROXIMITY_ROLE": "",
@@ -60,8 +60,8 @@ function setUseBetaServer(args, bot, msg) {
 function proximityCheck(args, bot, msg) {
 	function roleHandler(error) {
 		if (error) {
-			//console.log("Error: " + error);
-			console.log(error);
+			console.log("Error: " + error);
+			//console.log(error);
 		}
 	}
 
