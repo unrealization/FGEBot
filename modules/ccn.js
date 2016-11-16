@@ -205,6 +205,15 @@ function queueTest(args, bot, msg) {
 	roleQueue.push(roleActionRemove);
 
 	roleQueue.push(roleActionAdd);
+	roleQueue.push(roleActionRemove);
+
+	roleQueue.push(roleActionAdd);
+	roleQueue.push(roleActionRemove);
+
+	roleQueue.push(roleActionAdd);
+	roleQueue.push(roleActionRemove);
+
+	roleQueue.push(roleActionAdd);
 	//roleQueue.push(roleActionRemove);
 
 	processRoleQueue(bot, roleQueue);
