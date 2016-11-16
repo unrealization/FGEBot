@@ -2,7 +2,7 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.9.5.1";
+const VERSION = "0.9.6";
 const DISCORDID = 209372315673165825;
 
 var defaultModuleConfig = {
@@ -149,6 +149,7 @@ function proximityCheck(args, bot, msg) {
 		return;
 	}
 
+	botFunctions.sendMessage(bot, msg.channel, "This might take a while.");
 	ccn_edsm.getColoniaCommanders(edsmId, edsmApiKey, 200, callback);
 }
 
