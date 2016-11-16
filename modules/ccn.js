@@ -2,7 +2,7 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.9.5";
+const VERSION = "0.9.5.1";
 const DISCORDID = 209372315673165825;
 
 var defaultModuleConfig = {
@@ -24,7 +24,7 @@ function processRoleQueue(bot, roleQueue) {
 		}
 	}
 
-	console.log("Entries in role queue: " + roleQueue.length);
+	//console.log("Entries in role queue: " + roleQueue.length);
 
 	if (roleQueue.length == 0) {
 		return;
@@ -33,12 +33,12 @@ function processRoleQueue(bot, roleQueue) {
 	var roleAction = roleQueue.shift();
 
 	if (roleAction.action == "add") {
-		console.log("Adding role " + roleAction.role.name + " to user " + roleAction.user.name);
+		//console.log("Adding role " + roleAction.role.name + " to user " + roleAction.user.name);
 		bot.addMemberToRole(roleAction.user, roleAction.role, roleHandler);
 	}
 
 	if (roleAction.action == "remove") {
-		console.log("Removing role " + roleAction.role.name + " from user " + roleAction.user.name);
+		//console.log("Removing role " + roleAction.role.name + " from user " + roleAction.user.name);
 		bot.removeMemberFromRole(roleAction.user, roleAction.role, roleHandler);
 	}
 }
