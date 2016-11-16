@@ -2,9 +2,8 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.9.4.2";
+const VERSION = "0.9.5";
 const DISCORDID = 209372315673165825;
-//const DISCORDID = 212228086849077248;
 
 var defaultModuleConfig = {
 	"CCN_PROXIMITY_ROLE": "",
@@ -45,11 +44,11 @@ function processRoleQueue(bot, roleQueue) {
 }
 
 //
-function getApiObject(server) {
+/*function getApiObject(server) {
 	var edsmUseBetaServer = botFunctions.getConfigValue(server, "CCN_EDSM_USE_BETASERVER");
 	ccn_edsm.setUseBetaServer(edsmUseBetaServer);
 	return ccn_edsm;
-}
+}*/
 
 function setUseBetaServer(args, bot, msg) {
 	var edsmUseBetaServer = botFunctions.getConfigValue(msg.server, "CCN_EDSM_USE_BETASERVER");
@@ -58,13 +57,6 @@ function setUseBetaServer(args, bot, msg) {
 
 //
 function proximityCheck(args, bot, msg) {
-	function roleHandler(error) {
-		if (error) {
-			console.log("Error: " + error);
-			//console.log(error);
-		}
-	}
-
 	function callback(data) {
 		if (!data) {
 			botFunctions.sendMessage(bot, msg.channel, "Error");
@@ -101,7 +93,6 @@ function proximityCheck(args, bot, msg) {
 
 			if (dataIndex > -1 && roleIndex == -1) {
 				output += serverMembers[index].name + " has arrived in Colonia." + "\n";
-				//bot.addMemberToRole(serverMembers[index], proximityRole, roleHandler);
 				var roleAction = {
 					"action": "add",
 					"user": serverMembers[index],
@@ -112,7 +103,6 @@ function proximityCheck(args, bot, msg) {
 
 			if (dataIndex == -1 && roleIndex > -1) {
 				output += serverMembers[index].name + " is no longer in Colonia." + "\n";
-				//bot.removeMemberFromRole(serverMembers[index], proximityRole, roleHandler);
 				var roleAction = {
 					"action": "remove",
 					"user": serverMembers[index],
@@ -122,7 +112,7 @@ function proximityCheck(args, bot, msg) {
 			}
 		}
 
-		if (!output) {
+		if (roleQueue.length == 0) {
 			botFunctions.sendMessage(bot, msg.channel, "No changes to process.");
 			return;
 		}
@@ -162,75 +152,11 @@ function proximityCheck(args, bot, msg) {
 	ccn_edsm.getColoniaCommanders(edsmId, edsmApiKey, 200, callback);
 }
 
-function queueTest(args, bot, msg) {
-	var roleQueue = [];
-	var role = botFunctions.getRole(msg.server, 215456960248676354);
-
-	if (!role) {
-		botFunctions.sendMessage(bot, msg.channel, "Error");
-		return;
-	}
-
-	var roleActionAdd = {
-		"action": "add",
-		"user": msg.author,
-		"role": role
-	};
-
-	var roleActionRemove = {
-		"action": "remove",
-		"user": msg.author,
-		"role": role
-	};
-
-	roleQueue.push(roleActionAdd);
-	roleQueue.push(roleActionRemove);
-
-	roleQueue.push(roleActionAdd);
-	roleQueue.push(roleActionRemove);
-
-	roleQueue.push(roleActionAdd);
-	roleQueue.push(roleActionRemove);
-
-	roleQueue.push(roleActionAdd);
-	roleQueue.push(roleActionRemove);
-
-	roleQueue.push(roleActionAdd);
-	roleQueue.push(roleActionRemove);
-
-	roleQueue.push(roleActionAdd);
-	roleQueue.push(roleActionRemove);
-
-	roleQueue.push(roleActionAdd);
-	roleQueue.push(roleActionRemove);
-
-	roleQueue.push(roleActionAdd);
-	roleQueue.push(roleActionRemove);
-
-	roleQueue.push(roleActionAdd);
-	roleQueue.push(roleActionRemove);
-
-	roleQueue.push(roleActionAdd);
-	roleQueue.push(roleActionRemove);
-
-	roleQueue.push(roleActionAdd);
-	//roleQueue.push(roleActionRemove);
-
-	processRoleQueue(bot, roleQueue);
-}
-
 //
 var commands = {
 	"proximityCheck": {
 		help: "Automatically assign roles based on Commander location",
 		process: proximityCheck,
-		permissions: [
-			"administrator"
-		]
-	},
-	"queueTest": {
-		help: "Test the role queue",
-		process: queueTest,
 		permissions: [
 			"administrator"
 		]
@@ -241,6 +167,6 @@ var commands = {
 exports.VERSION = VERSION;
 exports.DISCORDID = DISCORDID;
 exports.defaultModuleConfig = defaultModuleConfig;
-exports.getApiObject = getApiObject;
+//exports.getApiObject = getApiObject;
 exports.preprocess = setUseBetaServer;
 exports.commands = commands;
