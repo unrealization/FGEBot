@@ -1,6 +1,6 @@
 {
   "name": "Jeeves",
-  "version": "1.6.2",
+  "version": "1.8.0",
   "description": "Discord bot for the August Exodus - A Jaunt to Jaques",
   "main": "main.js",
   "dependencies": {
