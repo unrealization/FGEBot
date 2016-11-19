@@ -2,7 +2,7 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.9.7";
+const VERSION = "0.9.7.1";
 const DISCORDID = 209372315673165825;
 
 var defaultModuleConfig = {
@@ -72,9 +72,14 @@ function proximityCheck(args, bot, msg) {
 		var proximityRoleMembers = msg.server.usersWithRole(proximityRole);
 		var output = "";
 		var roleQueue = [];
+		var edsm = botFunctions.getModule(msg.server, "edsm");
+
+		if (!edsm) {
+			botFunctions.sendMessage(bot, msg.channel, "The EDSM module is not available on this Discord.");
+			return;
+		}
 
 		for (var index=0; index<serverMembers.length; index++) {
-			var edsm = botFunctions.getModule(msg.server, "edsm");
 			var edsmUser;
 
 			if (edsm) {
@@ -147,7 +152,7 @@ function proximityCheck(args, bot, msg) {
 	}
 
 	botFunctions.sendMessage(bot, msg.channel, "This might take a while.");
-	ccn_edsm.getColoniaCommanders(edsmId, edsmApiKey, 200, callback);
+	ccn_edsm.getColoniaCommanders(edsmId, edsmApiKey, 1000, callback);
 }
 
 //
