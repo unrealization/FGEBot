@@ -2,7 +2,7 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.9.7.101";
+const VERSION = "0.9.8";
 const DISCORDID = 209372315673165825;
 
 var defaultModuleConfig = {
@@ -22,7 +22,7 @@ function newMemberHandler(bot, server, user) {
 	output += "To assign the role **Exploration Wing Member**:\n\t``@Jeeves join Exploration Wing Member``\n\n";
 	output += "To remove the role **Exploration Wing Member**:\n\t``@Jeeves leave Exploration Wing Member``\n\n";
 	output += "Our bot can also do quite a few other things to help you. Feel free to ask him for help using ``@Jeeves help``\n\n";
-	output += "Have a pleasant stay on the Colonia Citizens Network Discord.\n";
+	output += "Have a pleasant stay on the Colonia Citizens Network Discord!\n";
 	output += "The CCN Team";
 
 	console.log(user.name + " joined " + server.name);
@@ -170,15 +170,6 @@ var commands = {
 			"administrator"
 		]
 	},
-	"test": {
-		help: "Test",
-		process: function(args, bot, msg) {
-			newMemberHandler(bot, msg.server, msg.author);
-		},
-		permissions: [
-			"administrator"
-		]
-	},
 	"getProximityRole": {
 		help: "Shows the currently set proximity role.",
 		process: null,
@@ -209,5 +200,5 @@ exports.VERSION = VERSION;
 exports.DISCORDID = DISCORDID;
 exports.defaultModuleConfig = defaultModuleConfig;
 exports.preprocess = setUseBetaServer;
-//exports.onNewMember = newMemberHandler;
+exports.onNewMember = newMemberHandler;
 exports.commands = commands;
