@@ -18,9 +18,9 @@ function newMemberHandler(bot, server, user) {
 	output += "In order to make the most out of your experience here we have set up a number of roles which you can assign to yourself, using our bot Jeeves in our **#bots** channel. These roles allow access to special channels dedicated to different topics, where you can meet players who share your interests.\n";
 	output += "The bot commands ``roles``, ``join`` and ``leave`` will help you to find out which roles are currently available for you to use, and allow you to give yourself a role, or take it away again.\n";
 	output += "Please note that all bot commands have to be prefixed by pinging the bot using ``@Jeeves``\n"
-	output += "**To query what roles are available, type:**\n\t``@Jeeves roles``\n\n";
-	output += "**To assign the role 'Exploration Wing Member':**\n\t``@Jeeves join Exploration Wing Member``\n\n";
-	output += "**To remove the role 'Exploration Wing Member':**\n\t``@Jeeves leave Exploration Wing Member``\n\n";
+	output += "To query what roles are available, type:\n\t``@Jeeves roles``\n\n";
+	output += "To assign the role **Exploration Wing Member**:\n\t``@Jeeves join Exploration Wing Member``\n\n";
+	output += "To remove the role **Exploration Wing Member**:\n\t``@Jeeves leave Exploration Wing Member``\n\n";
 	output += "Our bot can also do quite a few other things to help you. Feel free to ask him for help using ``@Jeeves help``\n";
 	output += "\n";
 	output += "Have a pleasant stay on the Colonia Citizens Network Discord.\n";
