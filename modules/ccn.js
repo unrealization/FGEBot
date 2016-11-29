@@ -2,7 +2,7 @@ var ccn_edsm = require("../api/ccn.js");
 var botFunctions = require("../bot_functions.js");
 
 //
-const VERSION = "0.9.7.1";
+const VERSION = "0.9.7.99";
 const DISCORDID = 209372315673165825;
 
 var defaultModuleConfig = {
@@ -13,6 +13,25 @@ var defaultModuleConfig = {
 };
 
 //
+function newMemberHandler(bot, server, user) {
+	var output = "Welcome to the Colonia Citizens Network, " + user.name + "\n\n";
+	output += "In order to make the most out of your experience here we have set up a number of roles which you can assign to yourself using our bot Jeeves in our **#bots** channel.\n";
+	output += "The bot commands roles, join and leave will help you to find out which roles are currently available for you to use, and allow you to give yourself a role, or take it away again.\n";
+	output += "Please note that all bot commands have to be prefixed by pinging the bot using **@Jeeves**\n"
+	output += "Query roles:\n\t**@Jeeves roles**\n";
+	output += "Assign the role [CCC] Carrier:\n\t**@Jeeves join [CCC] Carrier**\n";
+	output += "Remove the role [CCC] Carrier:\n\t**@Jeeves leave [CCC] Carrier**\n";
+	output += "\n";
+	output += "Our bot can also do quite a few other things to help you. Feel free to ask him for help using **@Jeeves help**\n"
+	output += "\n";
+	output += "Have a pleasant stay on the Colonia Citizens Network Discord.\n";
+	output += "The CCN Team";
+
+	console.log(user.name + " joined " + server.name);
+	botFunctions.sendMessage(bot, user, output);
+	return false;
+}
+
 function processRoleQueue(bot, roleQueue) {
 	function roleHandler(error) {
 		if (error) {
@@ -24,8 +43,6 @@ function processRoleQueue(bot, roleQueue) {
 		}
 	}
 
-	//console.log("Entries in role queue: " + roleQueue.length);
-
 	if (roleQueue.length == 0) {
 		return;
 	}
@@ -33,22 +50,13 @@ function processRoleQueue(bot, roleQueue) {
 	var roleAction = roleQueue.shift();
 
 	if (roleAction.action == "add") {
-		//console.log("Adding role " + roleAction.role.name + " to user " + roleAction.user.name);
 		bot.addMemberToRole(roleAction.user, roleAction.role, roleHandler);
 	}
 
 	if (roleAction.action == "remove") {
-		//console.log("Removing role " + roleAction.role.name + " from user " + roleAction.user.name);
 		bot.removeMemberFromRole(roleAction.user, roleAction.role, roleHandler);
 	}
 }
-
-//
-/*function getApiObject(server) {
-	var edsmUseBetaServer = botFunctions.getConfigValue(server, "CCN_EDSM_USE_BETASERVER");
-	ccn_edsm.setUseBetaServer(edsmUseBetaServer);
-	return ccn_edsm;
-}*/
 
 function setUseBetaServer(args, bot, msg) {
 	var edsmUseBetaServer = botFunctions.getConfigValue(msg.server, "CCN_EDSM_USE_BETASERVER");
@@ -164,12 +172,44 @@ var commands = {
 			"administrator"
 		]
 	},
+	"test": {
+		help: "Test",
+		process: function(args, bot, msg) {
+			newMemberHandler(bot, msg.server, msg.author);
+		},
+		permissions: [
+			"administrator"
+		]
+	},
+	"getProximityRole": {
+		help: "Shows the currently set proximity role.",
+		process: null,
+		permissions: [
+			"administrator"
+		]
+	},
+	"setProximityRole": {
+		usage: "[role]",
+		help: "Set a role, or none, to assign to users who are in Colonia.",
+		process: null,
+		permissions: [
+			"administrator"
+		]
+	},
+	"getEdsmId": {
+	},
+	"setEdsmId": {
+	},
+	"getEdsmApiKey": {
+	},
+	"setEdsmApiKey": {
+	},
 };
 
 //
 exports.VERSION = VERSION;
 exports.DISCORDID = DISCORDID;
 exports.defaultModuleConfig = defaultModuleConfig;
-//exports.getApiObject = getApiObject;
 exports.preprocess = setUseBetaServer;
+//exports.onNewMember = newMemberHandler;
 exports.commands = commands;
