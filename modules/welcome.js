@@ -1,6 +1,6 @@
 var botFunctions = require("../bot_functions.js");
 
-const VERSION = "1.1";
+const VERSION = "1.2";
 
 var defaultModuleConfig = {
 	"WELCOME_CHANNEL": "",
@@ -35,7 +35,7 @@ var commands = {
 				return;
 			}
 
-			var serverChannel = botFunctions.getChannel(msg.serverr, welcomeChannel);
+			var serverChannel = botFunctions.getChannel(msg.server, welcomeChannel);
 
 			if (!serverChannel) {
 				botFunctions.sendMessage(bot, msg.channel, "A channel is set, but it does not exist on this server.");
