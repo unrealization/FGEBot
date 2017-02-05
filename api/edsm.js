@@ -8,6 +8,12 @@ aliases["rr lyrae"] = "HIP 95497";
 aliases["jaques"] = "Colonia";
 aliases["jaques station"] = "Colonia";
 aliases["sag a"] = "Sagittarius A*";
+aliases["hillary depot"] = "Blu Thua AI-A c14-10";
+aliases["amundsen terminal"] = "Lagoon Sector NI-S b4-10";
+aliases["eagle's landing"] = "Eagle Sector IR-W d1-117";
+aliases["sacaqawea space port"] = "Skaudai CH-B d14-34";
+aliases["gagarin gate"] = "Gru Hypue KS-T d3-31";
+aliases["polo harbour"] = "Boewnst KS-S c20-959";
 
 var useBetaServer = 1;
 

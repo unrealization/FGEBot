@@ -1,7 +1,7 @@
 var edsm = require("../api/edsm.js");
 var botFunctions = require("../bot_functions.js");
 
-const VERSION = "1.0";
+const VERSION = "1.0.1";
 
 var defaultModuleConfig = {
 	"EDSM_USE_BETASERVER": 1,
