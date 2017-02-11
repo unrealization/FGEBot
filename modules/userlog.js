@@ -1,6 +1,6 @@
 var botFunctions = require("../bot_functions.js");
 
-const VERSION = "1.0";
+const VERSION = "1.1";
 
 var defaultModuleConfig = {
 	"LOG_CHANNEL": "",
@@ -72,26 +72,64 @@ function presenceHandler(bot, server, oldUser, newUser) {
 	return false;
 }
 
+function getLogChannel(args, bot, msg)
+{
+	var logChannel = botFunctions.getConfigValue(msg.server, "LOG_CHANNEL");
+
+	if (!logChannel)
+	{
+		botFunctions.sendMessage(bot, msg.channel, "No log channel has been set.");
+		return;
+	}
+
+	var serverChannel = botFunctions.getChannel(msg.server, logChannel);
+
+	if (!serverChannel)
+	{
+		botFunctions.sendMessage(bot, msg.channel, "A channel is set, but it does not exist on this server.");
+		return;
+	}
+
+	botFunctions.sendMessage(bot, msg.channel, "The log channel is: " + serverChannel.name);
+}
+
+function setLogChannel(args, bot, msg)
+{
+	var channel = botFunctions.compileArgs(args);
+
+	if (!channel)
+	{
+		if (!botFunctions.setConfigValue(msg.server, "LOG_CHANNEL", ""))
+		{
+			botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+			return;
+		}
+
+		botFunctions.sendMessage(bot, msg.channel, "The channel for user logs has been cleared.");
+		return;
+	}
+
+	var serverChannel = botFunctions.getChannelByName(msg.server, channel);
+
+	if (!serverChannel)
+	{
+		botFunctions.sendMessage(bot, msg.channel, "Cannot find the channel " + channel);
+		return;
+	}
+
+	if (!botFunctions.setConfigValue(msg.server, "LOG_CHANNEL", serverChannel.id))
+	{
+		botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
+		return;
+	}
+
+	botFunctions.sendMessage(bot, msg.channel, "The channel for user logs has been to to: " + serverChannel.name);
+}
+
 var commands = {
 	"getLogChannel": {
 		help: "Shows the currently set channel for user logs.",
-		process: function(args, bot, msg) {
-			var logChannel = botFunctions.getConfigValue(msg.server, "LOG_CHANNEL");
-
-			if (!logChannel) {
-				botFunctions.sendMessage(bot, msg.channel, "No log channel has been set.");
-				return;
-			}
-
-			var serverChannel = botFunctions.getChannel(msg.server, logChannel);
-
-			if (!serverChannel) {
-				botFunctions.sendMessage(bot, msg.channel, "A channel is set, but it does not exist on this server.");
-				return;
-			}
-
-			botFunctions.sendMessage(bot, msg.channel, "The log channel is: " + serverChannel.name);
-		},
+		process: getLogChannel,
 		permissions: [
 			"administrator"
 		]
@@ -99,32 +137,7 @@ var commands = {
 	"setLogChannel": {
 		usage: "[channel]",
 		help: "Set a channel, or none, in which the bot will post user log messages.",
-		process: function(args, bot, msg) {
-			var channel = botFunctions.compileArgs(args);
-
-			if (!channel) {
-				if (!botFunctions.setConfigValue(msg.server, "LOG_CHANNEL", "")) {
-					botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-					return;
-				}
-				botFunctions.sendMessage(bot, msg.channel, "The channel for user logs has been cleared.");
-				return;
-			}
-
-			var serverChannel = botFunctions.getChannelByName(msg.server, channel);
-
-			if (!serverChannel) {
-				botFunctions.sendMessage(bot, msg.channel, "Cannot find the channel " + channel);
-				return;
-			}
-
-			if (!botFunctions.setConfigValue(msg.server, "LOG_CHANNEL", serverChannel.id)) {
-				botFunctions.sendMessage(bot, msg.channel, "There was a problem storing the setting.");
-				return;
-			}
-
-			botFunctions.sendMessage(bot, msg.channel, "The channel for user logs has been to to: " + serverChannel.name);
-		},
+		process: setLogChannel,
 		permissions: [
 			"administrator"
 		]
